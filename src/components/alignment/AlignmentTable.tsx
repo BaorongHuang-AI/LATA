@@ -30,6 +30,8 @@ interface AlignmentTableProps {
     onEditLineNumber: (type: 'source' | 'target', id: string, lineNumber: string) => void;
     onMergeLines: (type: 'source' | 'target') => void;
     onSplitLine: (type: 'source' | 'target', lineId: string, cursorPosition: number) => void;
+    onMoveUp: (type: 'source' | 'target', lineId: string) => void;
+    onMoveDown: (type: 'source' | 'target', lineId: string) => void;
     onLinkClick: (linkId: string) => void;
 }
 
@@ -56,6 +58,8 @@ export const AlignmentTable: React.FC<AlignmentTableProps> = ({
     onEditLineNumber,
     onMergeLines,
     onSplitLine,
+    onMoveUp,
+    onMoveDown,
     onLinkClick,
 }) => {
     const rows = useMemo(
@@ -70,9 +74,9 @@ export const AlignmentTable: React.FC<AlignmentTableProps> = ({
     const activeTargetIds = linkingMode === 'manual' ? selectedTargetIds : pendingTargetIds;
 
     const showSourceMerge =
-        linkingMode === 'manual' && activeSourceIds.length >= 2 && alignmentType === 'para';
+        linkingMode === 'manual' && activeSourceIds.length >= 2 && (alignmentType === 'para' || alignmentType === 'sent');
     const showTargetMerge =
-        linkingMode === 'manual' && activeTargetIds.length >= 2 && alignmentType === 'para';
+        linkingMode === 'manual' && activeTargetIds.length >= 2 && (alignmentType === 'para' || alignmentType === 'sent');
 
     return (
         <div className="flex-1 overflow-y-auto bg-gray-50">
@@ -143,6 +147,8 @@ export const AlignmentTable: React.FC<AlignmentTableProps> = ({
                         links={links}
                         sourceRTL={sourceRTL}
                         targetRTL={targetRTL}
+                        sourceLineCount={sourceLines.length}
+                        targetLineCount={targetLines.length}
                         onLineClick={onLineClick}
                         onEditLine={onEditLine}
                         onSaveEdit={onSaveEdit}
@@ -151,6 +157,8 @@ export const AlignmentTable: React.FC<AlignmentTableProps> = ({
                         onEditComment={onEditComment}
                         onEditLineNumber={onEditLineNumber}
                         onSplitLine={onSplitLine}
+                        onMoveUp={onMoveUp}
+                        onMoveDown={onMoveDown}
                         onLinkClick={onLinkClick}
                     />
                 ))}
@@ -179,6 +187,8 @@ interface AlignmentRowProps {
     links: Link[];
     sourceRTL: boolean;
     targetRTL: boolean;
+    sourceLineCount: number;
+    targetLineCount: number;
     onLineClick: (type: 'source' | 'target', id: string) => void;
     onEditLine: (type: 'source' | 'target', id: string, text: string) => void;
     onSaveEdit: () => void;
@@ -187,6 +197,8 @@ interface AlignmentRowProps {
     onEditComment: (type: 'source' | 'target', id: string, comment?: string) => void;
     onEditLineNumber: (type: 'source' | 'target', id: string, lineNumber: string) => void;
     onSplitLine: (type: 'source' | 'target', lineId: string, cursorPosition: number) => void;
+    onMoveUp: (type: 'source' | 'target', lineId: string) => void;
+    onMoveDown: (type: 'source' | 'target', lineId: string) => void;
     onLinkClick: (linkId: string) => void;
 }
 
@@ -202,6 +214,8 @@ const AlignmentRowComponent: React.FC<AlignmentRowProps> = ({
     links,
     sourceRTL,
     targetRTL,
+    sourceLineCount,
+    targetLineCount,
     onLineClick,
     onEditLine,
     onSaveEdit,
@@ -210,6 +224,8 @@ const AlignmentRowComponent: React.FC<AlignmentRowProps> = ({
     onEditComment,
     onEditLineNumber,
     onSplitLine,
+    onMoveUp,
+    onMoveDown,
     onLinkClick,
 }) => {
     const hasLink = !!row.link;
@@ -244,6 +260,7 @@ const AlignmentRowComponent: React.FC<AlignmentRowProps> = ({
                                 editingLine={editingLine}
                                 links={links}
                                 isRTL={sourceRTL}
+                                totalLines={sourceLineCount}
                                 onLineClick={onLineClick}
                                 onEditLine={onEditLine}
                                 onSaveEdit={onSaveEdit}
@@ -252,6 +269,8 @@ const AlignmentRowComponent: React.FC<AlignmentRowProps> = ({
                                 onEditComment={onEditComment}
                                 onEditLineNumber={onEditLineNumber}
                                 onSplitLine={onSplitLine}
+                                onMoveUp={onMoveUp}
+                                onMoveDown={onMoveDown}
                             />
                         ))}
                     </div>
@@ -307,6 +326,7 @@ const AlignmentRowComponent: React.FC<AlignmentRowProps> = ({
                                 editingLine={editingLine}
                                 links={links}
                                 isRTL={targetRTL}
+                                totalLines={targetLineCount}
                                 onLineClick={onLineClick}
                                 onEditLine={onEditLine}
                                 onSaveEdit={onSaveEdit}
@@ -315,6 +335,8 @@ const AlignmentRowComponent: React.FC<AlignmentRowProps> = ({
                                 onEditComment={onEditComment}
                                 onEditLineNumber={onEditLineNumber}
                                 onSplitLine={onSplitLine}
+                                onMoveUp={onMoveUp}
+                                onMoveDown={onMoveDown}
                             />
                         ))}
                     </div>
@@ -340,6 +362,7 @@ interface CellLineItemProps {
     editingLine: { type: 'source' | 'target'; id: string; text: string } | null;
     links: Link[];
     isRTL: boolean;
+    totalLines: number;
     onLineClick: (type: 'source' | 'target', id: string) => void;
     onEditLine: (type: 'source' | 'target', id: string, text: string) => void;
     onSaveEdit: () => void;
@@ -348,6 +371,8 @@ interface CellLineItemProps {
     onEditComment: (type: 'source' | 'target', id: string, comment?: string) => void;
     onEditLineNumber: (type: 'source' | 'target', id: string, lineNumber: string) => void;
     onSplitLine: (type: 'source' | 'target', lineId: string, cursorPosition: number) => void;
+    onMoveUp: (type: 'source' | 'target', lineId: string) => void;
+    onMoveDown: (type: 'source' | 'target', lineId: string) => void;
 }
 
 const CellLineItem: React.FC<CellLineItemProps> = ({
@@ -360,6 +385,7 @@ const CellLineItem: React.FC<CellLineItemProps> = ({
     editingLine,
     links,
     isRTL,
+    totalLines,
     onLineClick,
     onEditLine,
     onSaveEdit,
@@ -368,6 +394,8 @@ const CellLineItem: React.FC<CellLineItemProps> = ({
     onEditComment,
     onEditLineNumber,
     onSplitLine,
+    onMoveUp,
+    onMoveDown,
 }) => {
     const { line, globalIndex } = item;
     const fontFamily = type === 'source' ? fontSettings.sourceFontFamily : fontSettings.targetFontFamily;
@@ -404,11 +432,14 @@ const CellLineItem: React.FC<CellLineItemProps> = ({
                 }
             }}
             onSplitLine={
-                alignmentType === 'para'
+                alignmentType === 'para' || alignmentType === 'sent'
                     ? (lineId: string, pos: number) => onSplitLine(type, lineId, pos)
                     : undefined
             }
             isRTL={isRTL}
+            onMoveUp={() => onMoveUp(type, line.id)}
+            onMoveDown={() => onMoveDown(type, line.id)}
+            totalLines={totalLines}
         />
     );
 };

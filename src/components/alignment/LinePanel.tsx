@@ -26,8 +26,10 @@ interface LinePanelProps {
     onToggleFavorite: (id: string) => void;
     onEditComment: (id: string, comment?: string) => void;
     onEditLineNumber: (id: string, lineNumber: string) => void;
-    onMergeLines?: () => void; // ADD THIS
-    onSplitLine?: (lineId: string, cursorPosition: number) => void; // ADD THIS
+    onMergeLines?: () => void;
+    onSplitLine?: (lineId: string, cursorPosition: number) => void;
+    onMoveUp?: (lineId: string) => void;
+    onMoveDown?: (lineId: string) => void;
 }
 
 export const LinePanel = forwardRef<HTMLDivElement, LinePanelProps>(
@@ -51,8 +53,10 @@ export const LinePanel = forwardRef<HTMLDivElement, LinePanelProps>(
             onToggleFavorite,
             onEditComment,
             onEditLineNumber,
-            onMergeLines, // ADD THIS
-            onSplitLine, // ADD THIS
+            onMergeLines,
+            onSplitLine,
+            onMoveUp,
+            onMoveDown,
         },
         ref
     ) => {
@@ -88,7 +92,7 @@ export const LinePanel = forwardRef<HTMLDivElement, LinePanelProps>(
                     {/*</div>*/}
 
                     {/* ADD MERGE BUTTON */}
-                    {linkingMode === 'manual' && selectedIds.length >= 2 && onMergeLines && alignmentType == 'para' && (
+                    {linkingMode === 'manual' && selectedIds.length >= 2 && onMergeLines && (alignmentType == 'para' || alignmentType == 'sent') && (
                         <div className="mt-2">
                             <Button
                                 size="small"
@@ -141,8 +145,11 @@ export const LinePanel = forwardRef<HTMLDivElement, LinePanelProps>(
                                         onEditLine(line.id, text);
                                     }
                                 }}
-                                onSplitLine={onSplitLine} // ADD THIS
+                                onSplitLine={onSplitLine}
                                 isRTL={isRTL}
+                                onMoveUp={onMoveUp ? () => onMoveUp(line.id) : undefined}
+                                onMoveDown={onMoveDown ? () => onMoveDown(line.id) : undefined}
+                                totalLines={lines.length}
                             />
                         ))}
                     </div>

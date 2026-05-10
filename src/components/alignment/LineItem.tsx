@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Button, Input, Tooltip } from 'antd';
-import { Edit3, Star, StarOff, MessageSquare, Save, X, Scissors } from 'lucide-react';
+import { Edit3, Star, StarOff, MessageSquare, Save, X, Scissors, ChevronUp, ChevronDown } from 'lucide-react';
 import { getConfidenceColor, getConfidenceLabel } from '../../utils/confidence';
 import type { Link } from '../../types/alignment';
 
@@ -29,6 +29,9 @@ export const LineItem: React.FC<any> = ({
                                             setEditingText,
                                             onSplitLine,
                                             isRTL,
+                                            onMoveUp,
+                                            onMoveDown,
+                                            totalLines,
                                         }) => {
     const color = type === 'source' ? 'blue' : 'green';
     const textareaRef = useRef<any>(null); // ADD THIS
@@ -117,6 +120,11 @@ export const LineItem: React.FC<any> = ({
                             setShowSplitButton(false);
                             onEditLine(line.text);
                         } : undefined}
+                        onMoveUp={onMoveUp}
+                        onMoveDown={onMoveDown}
+                        canMoveUp={index > 0}
+                        canMoveDown={index < totalLines - 1}
+                        alignmentType={alignmentType}
                     />
                 )}
             </div>
@@ -179,7 +187,7 @@ const EditMode = React.forwardRef<any, {
             >
                 Save
             </Button>
-            {alignmentType == 'para' &&
+            {(alignmentType == 'para' || alignmentType == 'sent') &&
                 <Button
                     size="small"
                     icon={<Scissors size={14}/>}
@@ -310,40 +318,72 @@ const LineActions = ({
                          onEdit,
                          onToggleFavorite,
                          onEditComment,
-                         onSplit
+                         onSplit,
+                         onMoveUp,
+                         onMoveDown,
+                         canMoveUp,
+                         canMoveDown,
+                         alignmentType
                      }) => (
-    <div className="flex gap-1">
-        {/*{onSplit && (*/}
-        {/*    <Tooltip title="Split line">*/}
-        {/*        <IconBtn onClick={onSplit} title="Split">*/}
-        {/*            <Scissors size={15} />*/}
-        {/*        </IconBtn>*/}
-        {/*    </Tooltip>*/}
-        {/*)}*/}
-        {/*<IconBtn onClick={onEdit} title="Edit">*/}
-        {/*    <Edit3 size={15} />*/}
-        {/*</IconBtn>*/}
-        <IconBtn onClick={onToggleFavorite} title="Favorite">
-            {isFavorite ? (
-                <Star size={15} className="text-yellow-500 fill-current" />
-            ) : (
-                <StarOff size={15} />
+    <div className="flex flex-col gap-1">
+        <div className="flex gap-1">
+            {alignmentType && onMoveUp && onMoveDown && (
+                <>
+                    <Tooltip title="Move up">
+                        <IconBtn
+                            onClick={onMoveUp}
+                            title="Move up"
+                            disabled={!canMoveUp}
+                        >
+                            <ChevronUp size={15} className={!canMoveUp ? 'text-gray-300' : ''} />
+                        </IconBtn>
+                    </Tooltip>
+                    <Tooltip title="Move down">
+                        <IconBtn
+                            onClick={onMoveDown}
+                            title="Move down"
+                            disabled={!canMoveDown}
+                        >
+                            <ChevronDown size={15} className={!canMoveDown ? 'text-gray-300' : ''} />
+                        </IconBtn>
+                    </Tooltip>
+                </>
             )}
-        </IconBtn>
-        <IconBtn onClick={onEditComment} title="Comment">
-            <MessageSquare size={15} className={hasComment ? 'text-amber-500' : ''} />
-        </IconBtn>
+        </div>
+        <div className="flex gap-1">
+            {/*{onSplit && (*/}
+            {/*    <Tooltip title="Split line">*/}
+            {/*        <IconBtn onClick={onSplit} title="Split">*/}
+            {/*            <Scissors size={15} />*/}
+            {/*        </IconBtn>*/}
+            {/*    </Tooltip>*/}
+            {/*)}*/}
+            {/*<IconBtn onClick={onEdit} title="Edit">*/}
+            {/*    <Edit3 size={15} />*/}
+            {/*</IconBtn>*/}
+            <IconBtn onClick={onToggleFavorite} title="Favorite">
+                {isFavorite ? (
+                    <Star size={15} className="text-yellow-500 fill-current" />
+                ) : (
+                    <StarOff size={15} />
+                )}
+            </IconBtn>
+            <IconBtn onClick={onEditComment} title="Comment">
+                <MessageSquare size={15} className={hasComment ? 'text-amber-500' : ''} />
+            </IconBtn>
+        </div>
     </div>
 );
 
-const IconBtn = ({ children, onClick, title }) => (
+const IconBtn = ({ children, onClick, title, disabled = false }) => (
     <button
         title={title}
         onClick={(e) => {
             e.stopPropagation();
-            onClick();
+            if (!disabled) onClick();
         }}
-        className="p-1 rounded hover:bg-gray-100 text-gray-400"
+        disabled={disabled}
+        className={`p-1 rounded hover:bg-gray-100 text-gray-400 ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
     >
         {children}
     </button>

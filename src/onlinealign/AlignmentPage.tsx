@@ -42,7 +42,30 @@ function resolveIdFromLineNumber(
 /**
  * Reorders lines sequentially starting from 1
  */
-const reorderLines = (lines: Line[], prefix: string): Line[] => {
+const reorderLines = (lines: Line[], prefix: string, alignmentType: string): Line[] => {
+    if (alignmentType === 'sent') {
+        let currentPara = -1;
+        let sentIdx = 0;
+
+        return lines.map(line => {
+            const match = line.lineNumber?.match(/^[st]p(\d+)-s(\d+)$/);
+            const paraIdx = match ? parseInt(match[1]) : (currentPara >= 0 ? currentPara : 0);
+
+            if (paraIdx !== currentPara) {
+                currentPara = paraIdx;
+                sentIdx = 0;
+            }
+
+            const newKey = `${prefix}${currentPara}-s${sentIdx}`;
+            sentIdx++;
+
+            return {
+                ...line,
+                id: newKey,
+                lineNumber: newKey,
+            };
+        });
+    }
     return lines.map((line, index) => ({
         ...line,
         lineNumber: `${prefix}${index}`,
@@ -560,7 +583,7 @@ const AlignmentPage: React.FC<AlignmentPageProps> = ({ alignmentType }) => {
 
         // Step 5: Reorder all line numbers sequentially
         const prefix = type === 'source' ? 'sp' : 'tp';
-        const reorderedLines = reorderLines(newLinesBeforeReorder, prefix);
+        const reorderedLines = reorderLines(newLinesBeforeReorder, prefix, alignmentType);
 
         console.log("links", links, selectedIds, reorderedLines);
 
@@ -576,22 +599,29 @@ const AlignmentPage: React.FC<AlignmentPageProps> = ({ alignmentType }) => {
         // Build the mapping for lines that exist in both old and new arrays
         const idMapping = new Map<string, string>();
 
-        // Lines before merge point keep their content, get new IDs from reordered array
-        lines.slice(0, firstIndex).forEach((oldLine, index) => {
-            idMapping.set(resolveLineNumber(oldLine.id,sourceLines, targetLines), resolveLineNumber(reorderedLines[index].id, sourceLines, targetLines));
-        });
+        if (alignmentType === 'sent') {
+            // For sent type, id === lineNumber (sentence key), map directly by position
+            lines.slice(0, firstIndex).forEach((oldLine, index) => {
+                idMapping.set(oldLine.id, reorderedLines[index].id);
+            });
+            lines.slice(lastIndex + 1).forEach((oldLine, offsetIndex) => {
+                const newPosition = firstIndex + 1 + offsetIndex;
+                idMapping.set(oldLine.id, reorderedLines[newPosition].id);
+            });
+        } else {
+            // Lines before merge point keep their content, get new IDs from reordered array
+            lines.slice(0, firstIndex).forEach((oldLine, index) => {
+                idMapping.set(resolveLineNumber(oldLine.id,sourceLines, targetLines), resolveLineNumber(reorderedLines[index].id, sourceLines, targetLines));
+            });
 
-        // Lines after merge point: their position shifts down
-        // Old position: lastIndex + 1, lastIndex + 2, ...
-        // New position: firstIndex + 1, firstIndex + 2, ...
-        lines.slice(lastIndex + 1).forEach((oldLine, offsetIndex) => {
-            const newPosition = firstIndex + 1 + offsetIndex;
-            // console.log("new position", firstIndex, offsetIndex, newPosition,
-            //     oldLine,
-            //     oldLine.id, reorderedLines, reorderedLines[newPosition]);
-            idMapping.set(resolveLineNumber(oldLine.id,sourceLines, targetLines), resolveLineNumber(reorderedLines[newPosition].id, reorderedLines, reorderedLines));
-            // console.log("idmapping", idMapping);
-        });
+            // Lines after merge point: their position shifts down
+            // Old position: lastIndex + 1, lastIndex + 2, ...
+            // New position: firstIndex + 1, firstIndex + 2, ...
+            lines.slice(lastIndex + 1).forEach((oldLine, offsetIndex) => {
+                const newPosition = firstIndex + 1 + offsetIndex;
+                idMapping.set(resolveLineNumber(oldLine.id,sourceLines, targetLines), resolveLineNumber(reorderedLines[newPosition].id, reorderedLines, reorderedLines));
+            });
+        }
         console.log("new links after position change", lines, idMapping);
         // Update links with new IDs
         newLinks = newLinks.map(link => {
@@ -685,9 +715,7 @@ const AlignmentPage: React.FC<AlignmentPageProps> = ({ alignmentType }) => {
 
         // Step 3: Reorder all line numbers sequentially
         const prefix = type === 'source' ? 'sp' : 'tp';
-        const reorderedLines = reorderLines(newLinesBeforeReorder, prefix);
-
-        // Step 4: Remove links that reference the split line
+        const reorderedLines = reorderLines(newLinesBeforeReorder, prefix, alignmentType);
         // let newLinks = removeLinksReferencingLineNumbers(links,
         //     sourceLines,
         //     targetLines,
@@ -695,26 +723,36 @@ const AlignmentPage: React.FC<AlignmentPageProps> = ({ alignmentType }) => {
 
         let newLinks = removeLinksReferencingLineNumbers(
             links,
-            selectedIds,
+            [lineId],
             sourceLines,
             targetLines
         );
         // Step 5: Update remaining links - map old IDs to new IDs
         const idMapping = new Map<string, string>();
 
-        // Lines before split point keep their position
-        lines.slice(0, lineIndex).forEach((oldLine, index) => {
-            idMapping.set(oldLine.id, reorderedLines[index].id);
-        });
+        if (alignmentType === 'sent') {
+            // For sent type, id === lineNumber (sentence key), map directly by position
+            lines.slice(0, lineIndex).forEach((oldLine, index) => {
+                idMapping.set(oldLine.id, reorderedLines[index].id);
+            });
+            lines.slice(lineIndex + 1).forEach((oldLine, offsetIndex) => {
+                const newPosition = lineIndex + 2 + offsetIndex;
+                idMapping.set(oldLine.id, reorderedLines[newPosition].id);
+            });
+        } else {
+            // Lines before split point keep their position
+            lines.slice(0, lineIndex).forEach((oldLine, index) => {
+                idMapping.set(oldLine.id, reorderedLines[index].id);
+            });
 
-        // Lines after split point: their position shifts up by 1
-        // Old position: lineIndex + 1, lineIndex + 2, ...
-        // New position: lineIndex + 2, lineIndex + 3, ... (because we added 2 lines, removed 1)
-        lines.slice(lineIndex + 1).forEach((oldLine, offsetIndex) => {
-            const newPosition = lineIndex + 2 + offsetIndex;
-            // idMapping.set(oldLine.id, reorderedLines[newPosition].id);
-            idMapping.set(resolveLineNumber(oldLine.id,sourceLines, targetLines), resolveLineNumber(reorderedLines[newPosition].id, reorderedLines, reorderedLines));
-        });
+            // Lines after split point: their position shifts up by 1
+            // Old position: lineIndex + 1, lineIndex + 2, ...
+            // New position: lineIndex + 2, lineIndex + 3, ... (because we added 2 lines, removed 1)
+            lines.slice(lineIndex + 1).forEach((oldLine, offsetIndex) => {
+                const newPosition = lineIndex + 2 + offsetIndex;
+                idMapping.set(resolveLineNumber(oldLine.id,sourceLines, targetLines), resolveLineNumber(reorderedLines[newPosition].id, reorderedLines, reorderedLines));
+            });
+        }
 
         // Update links with new IDs
         newLinks = newLinks.map(link => {
@@ -745,6 +783,79 @@ const AlignmentPage: React.FC<AlignmentPageProps> = ({ alignmentType }) => {
             'Line split successfully. ' +
             (deletedLinksCount > 0 ? `${deletedLinksCount} link(s) removed.` : '')
         );
+    };
+
+    const moveLine = (type: 'source' | 'target', lineId: string, direction: 'up' | 'down') => {
+        const lines = type === 'source' ? sourceLines : targetLines;
+        const lineIndex = lines.findIndex(l => l.id === lineId);
+
+        if (lineIndex === -1) {
+            message.error('Line not found');
+            return;
+        }
+
+        // Check boundaries
+        if (direction === 'up' && lineIndex === 0) {
+            message.warning('Cannot move the first line up');
+            return;
+        }
+
+        if (direction === 'down' && lineIndex === lines.length - 1) {
+            message.warning('Cannot move the last line down');
+            return;
+        }
+
+        const targetIndex = direction === 'up' ? lineIndex - 1 : lineIndex + 1;
+
+        // Swap the lines
+        const newLines = [...lines];
+        [newLines[lineIndex], newLines[targetIndex]] = [newLines[targetIndex], newLines[lineIndex]];
+
+        // Reorder line numbers sequentially
+        const prefix = type === 'source' ? 'sp' : 'tp';
+        const reorderedLines = reorderLines(newLines, prefix, alignmentType);
+
+        // Update links - map old IDs to new IDs
+        const idMapping = new Map<string, string>();
+        lines.forEach((oldLine, index) => {
+            const newLine = reorderedLines.find(l => l.text === oldLine.text);
+            if (newLine) {
+                idMapping.set(oldLine.id, newLine.id);
+            }
+        });
+
+        const newLinks = links.map(link => {
+            if (type === 'source') {
+                const newSourceIds = link.sourceIds.map(id => idMapping.get(id) || id);
+                return { ...link, sourceIds: newSourceIds };
+            } else {
+                const newTargetIds = link.targetIds.map(id => idMapping.get(id) || id);
+                return { ...link, targetIds: newTargetIds };
+            }
+        });
+
+        // Update state
+        if (type === 'source') {
+            updateState({
+                sourceLines: reorderedLines,
+                links: newLinks
+            });
+        } else {
+            updateState({
+                targetLines: reorderedLines,
+                links: newLinks
+            });
+        }
+
+        message.success(`Line moved ${direction} successfully`);
+    };
+
+    const moveLineUp = (type: 'source' | 'target', lineId: string) => {
+        moveLine(type, lineId, 'up');
+    };
+
+    const moveLineDown = (type: 'source' | 'target', lineId: string) => {
+        moveLine(type, lineId, 'down');
     };
 
     const updateLink =  (linkId, updates) => {
@@ -901,6 +1012,8 @@ const AlignmentPage: React.FC<AlignmentPageProps> = ({ alignmentType }) => {
                 onEditLineNumber={(type, id, lineNumber) => openEditModal('line', id, 'lineNumber', lineNumber)}
                 onMergeLines={(type) => mergeLines(type)}
                 onSplitLine={(type, lineId, pos) => splitLine(type, lineId, pos)}
+                onMoveUp={(type, lineId) => moveLineUp(type, lineId)}
+                onMoveDown={(type, lineId) => moveLineDown(type, lineId)}
                 onLinkClick={(linkId) => {
                     setSelectedLinkForDetails(linkId);
                     setModals((m) => ({ ...m, linkDetails: true }));

@@ -854,6 +854,79 @@ const ParaAlignmentPage: React.FC = () => {
         );
     };
 
+    const moveLine = (type: 'source' | 'target', lineId: string, direction: 'up' | 'down') => {
+        const lines = type === 'source' ? sourceLines : targetLines;
+        const lineIndex = lines.findIndex(l => l.id === lineId);
+
+        if (lineIndex === -1) {
+            message.error('Line not found');
+            return;
+        }
+
+        // Check boundaries
+        if (direction === 'up' && lineIndex === 0) {
+            message.warning('Cannot move the first line up');
+            return;
+        }
+
+        if (direction === 'down' && lineIndex === lines.length - 1) {
+            message.warning('Cannot move the last line down');
+            return;
+        }
+
+        const targetIndex = direction === 'up' ? lineIndex - 1 : lineIndex + 1;
+
+        // Swap the lines
+        const newLines = [...lines];
+        [newLines[lineIndex], newLines[targetIndex]] = [newLines[targetIndex], newLines[lineIndex]];
+
+        // Reorder line numbers sequentially
+        const prefix = type === 'source' ? 'sp' : 'tp';
+        const reorderedLines = reorderLines(newLines, prefix);
+
+        // Update links - map old IDs to new IDs
+        const idMapping = new Map<string, string>();
+        lines.forEach((oldLine, index) => {
+            const newLine = reorderedLines.find(l => l.text === oldLine.text);
+            if (newLine) {
+                idMapping.set(oldLine.id, newLine.id);
+            }
+        });
+
+        const newLinks = links.map(link => {
+            if (type === 'source') {
+                const newSourceIds = link.sourceIds.map(id => idMapping.get(id) || id);
+                return { ...link, sourceIds: newSourceIds };
+            } else {
+                const newTargetIds = link.targetIds.map(id => idMapping.get(id) || id);
+                return { ...link, targetIds: newTargetIds };
+            }
+        });
+
+        // Update state
+        if (type === 'source') {
+            updateState({
+                sourceLines: reorderedLines,
+                links: newLinks
+            });
+        } else {
+            updateState({
+                targetLines: reorderedLines,
+                links: newLinks
+            });
+        }
+
+        message.success(`Line moved ${direction} successfully`);
+    };
+
+    const moveLineUp = (type: 'source' | 'target', lineId: string) => {
+        moveLine(type, lineId, 'up');
+    };
+
+    const moveLineDown = (type: 'source' | 'target', lineId: string) => {
+        moveLine(type, lineId, 'down');
+    };
+
     const updateLink =  (linkId, updates) => {
         const updatedLinks = links.map(link =>
             link.id === linkId
@@ -1022,8 +1095,10 @@ const ParaAlignmentPage: React.FC = () => {
                     onToggleFavorite={(id) => toggleLineFavorite('source', id)}
                     onEditComment={(id, comment) => openEditModal('line', id, 'comment', comment)}
                     onEditLineNumber={(id, number) => openEditModal('line', id, 'lineNumber', number)}
-                    onMergeLines={() => mergeLines('source')} // ADD THIS
-                    onSplitLine={(lineId, pos) => splitLine('source', lineId, pos)} // ADD THIS
+                    onMergeLines={() => mergeLines('source')}
+                    onSplitLine={(lineId, pos) => splitLine('source', lineId, pos)}
+                    onMoveUp={(lineId) => moveLineUp('source', lineId)}
+                    onMoveDown={(lineId) => moveLineDown('source', lineId)}
                 />
 
                 <TargetPanel
@@ -1043,8 +1118,10 @@ const ParaAlignmentPage: React.FC = () => {
                     onToggleFavorite={(id) => toggleLineFavorite('target', id)}
                     onEditComment={(id, comment) => openEditModal('line', id, 'comment', comment)}
                     onEditLineNumber={(id, number) => openEditModal('line', id, 'lineNumber', number)}
-                    onMergeLines={() => mergeLines('target')} // ADD THIS
-                    onSplitLine={(lineId, pos) => splitLine('target', lineId, pos)} // ADD THIS
+                    onMergeLines={() => mergeLines('target')}
+                    onSplitLine={(lineId, pos) => splitLine('target', lineId, pos)}
+                    onMoveUp={(lineId) => moveLineUp('target', lineId)}
+                    onMoveDown={(lineId) => moveLineDown('target', lineId)}
                 />
             </div>
 
