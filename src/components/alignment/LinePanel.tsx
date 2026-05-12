@@ -92,7 +92,7 @@ export const LinePanel = forwardRef<HTMLDivElement, LinePanelProps>(
                     {/*</div>*/}
 
                     {/* ADD MERGE BUTTON */}
-                    {linkingMode === 'manual' && selectedIds.length >= 2 && onMergeLines && (alignmentType == 'para' || alignmentType == 'sent') && (
+                    {linkingMode === 'manual' && selectedIds.length >= 2 && onMergeLines && (alignmentType == 'para' || alignmentType == 'sent' || alignmentType == 'word') && (
                         <div className="mt-2">
                             <Button
                                 size="small"

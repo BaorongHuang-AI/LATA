@@ -187,7 +187,7 @@ const EditMode = React.forwardRef<any, {
             >
                 Save
             </Button>
-            {(alignmentType == 'para' || alignmentType == 'sent') &&
+            {(alignmentType == 'para' || alignmentType == 'sent' || alignmentType == 'word') &&
                 <Button
                     size="small"
                     icon={<Scissors size={14}/>}

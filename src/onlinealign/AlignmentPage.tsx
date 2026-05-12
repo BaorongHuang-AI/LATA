@@ -43,6 +43,13 @@ function resolveIdFromLineNumber(
  * Reorders lines sequentially starting from 1
  */
 const reorderLines = (lines: Line[], prefix: string, alignmentType: string): Line[] => {
+    if (alignmentType === 'word') {
+        return lines.map((line, index) => ({
+            ...line,
+            id: `${prefix}${index}`,
+            lineNumber: `${prefix}${index}`,
+        }));
+    }
     if (alignmentType === 'sent') {
         let currentPara = -1;
         let sentIdx = 0;
@@ -288,6 +295,7 @@ const AlignmentPage: React.FC<AlignmentPageProps> = ({ alignmentType }) => {
         fontSettings: false,
         quickLink: false,
         linkDetails: false,
+        wordAlignment: false,
     });
 
     // Edit state
@@ -297,6 +305,12 @@ const AlignmentPage: React.FC<AlignmentPageProps> = ({ alignmentType }) => {
         field: 'comment' | 'lineNumber';
     } | null>(null);
     const [editValue, setEditValue] = useState('');
+
+    // Word alignment state
+    const [wordAlignmentPair, setWordAlignmentPair] = useState<{
+        sourceKey: string; targetKey: string; sourceText: string; targetText: string;
+    } | null>(null);
+    const [sentencesWithWordAlignments, setSentencesWithWordAlignments] = useState<Set<string>>(new Set());
 
     // Keyboard shortcuts
     useKeyboardShortcuts({
@@ -313,6 +327,34 @@ const AlignmentPage: React.FC<AlignmentPageProps> = ({ alignmentType }) => {
             quickLink: clickLinkingStep === 'target-selected',
         }));
     }, [clickLinkingStep]);
+
+    // Load word alignment badges on mount
+    useEffect(() => {
+        if (!documentId) return;
+        window.api.checkWordAlignments(Number(documentId)).then((keys: string[]) => {
+            setSentencesWithWordAlignments(new Set(keys));
+        }).catch(console.error);
+    }, [documentId]);
+
+    // Open word alignment modal from selected link
+    const handleOpenWordAlignment = () => {
+        const selectedLink = links.find(l => l.id === selectedLinkForDetails);
+        if (!selectedLink) return;
+
+        const sourceText = selectedLink.sourceIds
+            .map(id => sourceLines.find(l => l.id === id || l.lineNumber === id)?.text)
+            .filter(Boolean)
+            .join(" ");
+        const targetText = selectedLink.targetIds
+            .map(id => targetLines.find(l => l.id === id || l.lineNumber === id)?.text)
+            .filter(Boolean)
+            .join(" ");
+
+        const sourceKey = selectedLink.sourceIds[0];
+        const targetKey = selectedLink.targetIds[0];
+
+        setWordAlignmentPair({ sourceKey, targetKey, sourceText, targetText });
+    };
 
     // Handlers
     // const handleExport = () => {
@@ -1014,8 +1056,24 @@ const AlignmentPage: React.FC<AlignmentPageProps> = ({ alignmentType }) => {
                 onSplitLine={(type, lineId, pos) => splitLine(type, lineId, pos)}
                 onMoveUp={(type, lineId) => moveLineUp(type, lineId)}
                 onMoveDown={(type, lineId) => moveLineDown(type, lineId)}
+                sentencesWithWordAlignments={sentencesWithWordAlignments}
                 onLinkClick={(linkId) => {
                     setSelectedLinkForDetails(linkId);
+                    const link = links.find(l => l.id === linkId);
+                    if (link) {
+                        const srcText = link.sourceIds
+                            .map(id => sourceLines.find(l => l.id === id || l.lineNumber === id)?.text)
+                            .filter(Boolean).join(" ");
+                        const tgtText = link.targetIds
+                            .map(id => targetLines.find(l => l.id === id || l.lineNumber === id)?.text)
+                            .filter(Boolean).join(" ");
+                        setWordAlignmentPair({
+                            sourceKey: link.sourceIds[0],
+                            targetKey: link.targetIds[0],
+                            sourceText: srcText,
+                            targetText: tgtText,
+                        });
+                    }
                     setModals((m) => ({ ...m, linkDetails: true }));
                 }}
             />
@@ -1051,6 +1109,13 @@ const AlignmentPage: React.FC<AlignmentPageProps> = ({ alignmentType }) => {
                 onToggleLinkFavorite={toggleLinkFavorite}
                 onDeleteLink={deleteLink}
                 onUpdateLink={updateLink}
+                wordAlignmentPair={wordAlignmentPair}
+                onWordAlignmentSaved={async () => {
+                    if (documentId) {
+                        const keys = await window.api.checkWordAlignments(Number(documentId));
+                        setSentencesWithWordAlignments(new Set(keys));
+                    }
+                }}
             />
         </div>
     );

@@ -13,6 +13,7 @@ interface LinkDetailsModalProps {
     onToggleFavorite: (linkId: string) => void;
     onDelete: (linkId: string) => void;
     onUpdate?: (linkId: string, updates: { strategy: string; comment: string; confidence: number }) => void;
+    onOpenWordAlignment?: () => void;
     linkFormState?: {
         strategy: string;
         comment: string;
@@ -70,6 +71,7 @@ export const LinkDetailsModal: React.FC<LinkDetailsModalProps> = ({
                                                                       linkFormState,
                                                                       setLinkFormState,
                                                                       onUpdate,
+                                                                      onOpenWordAlignment,
                                                                   }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [editedStrategy, setEditedStrategy] = useState<string[]>([]);
@@ -286,6 +288,17 @@ export const LinkDetailsModal: React.FC<LinkDetailsModalProps> = ({
                             >
                                 {link.isFavorite ? 'Favorited' : 'Favorite'}
                             </Button>
+                            {onOpenWordAlignment && (
+                                <Button
+                                    type="primary"
+                                    onClick={() => {
+                                        onClose();
+                                        onOpenWordAlignment();
+                                    }}
+                                >
+                                    Word Alignment
+                                </Button>
+                            )}
                             <Button danger icon={<Trash2 size={14} />} onClick={handleDelete}>
                                 Delete
                             </Button>

@@ -12,8 +12,8 @@ interface AlignmentTableProps {
     sourceLines: Line[];
     targetLines: Line[];
     links: Link[];
-    sourceMeta: { language: string };
-    targetMeta: { language: string };
+    sourceMeta: { language: string } | null;
+    targetMeta: { language: string } | null;
     fontSettings: FontSettings;
     linkingMode: LinkingMode;
     selectedSourceIds: string[];
@@ -33,6 +33,7 @@ interface AlignmentTableProps {
     onMoveUp: (type: 'source' | 'target', lineId: string) => void;
     onMoveDown: (type: 'source' | 'target', lineId: string) => void;
     onLinkClick: (linkId: string) => void;
+    sentencesWithWordAlignments?: Set<string>;
 }
 
 export const AlignmentTable: React.FC<AlignmentTableProps> = ({
@@ -61,22 +62,23 @@ export const AlignmentTable: React.FC<AlignmentTableProps> = ({
     onMoveUp,
     onMoveDown,
     onLinkClick,
+    sentencesWithWordAlignments,
 }) => {
     const rows = useMemo(
         () => buildAlignmentRows(sourceLines, targetLines, links),
         [sourceLines, targetLines, links]
     );
 
-    const sourceRTL = !!sourceMeta.language && RTL_LANGS.indexOf(sourceMeta.language) !== -1;
-    const targetRTL = !!targetMeta.language && RTL_LANGS.indexOf(targetMeta.language) !== -1;
+    const sourceRTL = !!sourceMeta?.language && RTL_LANGS.indexOf(sourceMeta.language) !== -1;
+    const targetRTL = !!targetMeta?.language && RTL_LANGS.indexOf(targetMeta.language) !== -1;
 
     const activeSourceIds = linkingMode === 'manual' ? selectedSourceIds : pendingSourceIds;
     const activeTargetIds = linkingMode === 'manual' ? selectedTargetIds : pendingTargetIds;
 
     const showSourceMerge =
-        linkingMode === 'manual' && activeSourceIds.length >= 2 && (alignmentType === 'para' || alignmentType === 'sent');
+        linkingMode === 'manual' && activeSourceIds.length >= 2 && (alignmentType === 'para' || alignmentType === 'sent' || alignmentType === 'word');
     const showTargetMerge =
-        linkingMode === 'manual' && activeTargetIds.length >= 2 && (alignmentType === 'para' || alignmentType === 'sent');
+        linkingMode === 'manual' && activeTargetIds.length >= 2 && (alignmentType === 'para' || alignmentType === 'sent' || alignmentType === 'word');
 
     return (
         <div className="flex-1 overflow-y-auto bg-gray-50">
@@ -160,6 +162,7 @@ export const AlignmentTable: React.FC<AlignmentTableProps> = ({
                         onMoveUp={onMoveUp}
                         onMoveDown={onMoveDown}
                         onLinkClick={onLinkClick}
+                        sentencesWithWordAlignments={sentencesWithWordAlignments}
                     />
                 ))}
 
@@ -200,6 +203,7 @@ interface AlignmentRowProps {
     onMoveUp: (type: 'source' | 'target', lineId: string) => void;
     onMoveDown: (type: 'source' | 'target', lineId: string) => void;
     onLinkClick: (linkId: string) => void;
+    sentencesWithWordAlignments?: Set<string>;
 }
 
 const AlignmentRowComponent: React.FC<AlignmentRowProps> = ({
@@ -227,10 +231,16 @@ const AlignmentRowComponent: React.FC<AlignmentRowProps> = ({
     onMoveUp,
     onMoveDown,
     onLinkClick,
+    sentencesWithWordAlignments,
 }) => {
     const hasLink = !!row.link;
     const isUnlinkedSource = row.sourceItems.length > 0 && row.targetItems.length === 0;
     const isUnlinkedTarget = row.sourceItems.length === 0 && row.targetItems.length > 0;
+
+    const hasWordAlignment = hasLink && row.link && sentencesWithWordAlignments && (
+        row.link.sourceIds.some(id => sentencesWithWordAlignments.has(id)) ||
+        row.link.targetIds.some(id => sentencesWithWordAlignments.has(id))
+    );
 
     const rowBg = hasLink
         ? rowIndex % 2 === 0
@@ -282,7 +292,7 @@ const AlignmentRowComponent: React.FC<AlignmentRowProps> = ({
             </div>
 
             {/* Link indicator column */}
-            <div className="w-16 flex items-center justify-center border-x border-gray-200 shrink-0">
+            <div className="w-16 flex flex-col items-center justify-center border-x border-gray-200 shrink-0 gap-1">
                 {hasLink && row.link && (
                     <Tooltip
                         title={`${getConfidenceLabel(row.link.confidence)} (${(
@@ -303,6 +313,11 @@ const AlignmentRowComponent: React.FC<AlignmentRowProps> = ({
                             )}
                         </button>
                     </Tooltip>
+                )}
+                {hasWordAlignment && (
+                    <span className="text-[10px] font-bold text-blue-600 bg-blue-100 rounded px-1.5 py-0.5 leading-none">
+                        W
+                    </span>
                 )}
             </div>
 

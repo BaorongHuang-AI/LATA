@@ -362,6 +362,24 @@ declare global {
             markAlignmentCompleted: (documentId: number) => Promise<any>;
 
             getDocumentAlignments: (docId: number) => Promise<any>;
+
+            // Word alignment
+            getWordAlignmentState: (documentId: number, sourceKey: string, targetKey: string) => Promise<{
+                sourceWords: import("./types/alignment").Line[];
+                targetWords: import("./types/alignment").Line[];
+                wordLinks: import("./types/alignment").Link[];
+            }>;
+            saveWordAlignment: (documentId: number, sourceKey: string, targetKey: string, state: any) => Promise<{ ok: boolean }>;
+            checkWordAlignments: (documentId: number) => Promise<string[]>;
+            segmentAndAlignWords: (payload: {
+                sourceText: string; targetText: string;
+                srcLang: string; tgtLang: string;
+            }) => Promise<{
+                sourceWords: import("./types/alignment").Line[];
+                targetWords: import("./types/alignment").Line[];
+                wordLinks: import("./types/alignment").Link[];
+            }>;
+
             onAlignmentFinished: (
                 callback: (data: AlignmentFinishedPayload) => void
             ) => void;

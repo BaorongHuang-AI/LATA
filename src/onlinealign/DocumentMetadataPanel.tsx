@@ -1,5 +1,5 @@
 import React, {useState} from "react";
-import {Form, Input, DatePicker, Collapse, Select} from "antd";
+import {Form, Input, DatePicker, Collapse, Select, Checkbox} from "antd";
 import { FileText } from "lucide-react";
 import {DOMAIN_OPTIONS, LANGUAGE_OPTIONS} from "../utils/Constants";
 
@@ -12,6 +12,12 @@ interface DocumentMetadataPanelProps {
     title: string;
     /** whether expanded by default */
     defaultOpen?: boolean;
+    /** when true, shows "same as source" checkboxes */
+    isTarget?: boolean;
+    /** set of field names currently synced from source */
+    syncedFields?: Set<string>;
+    /** called when a sync checkbox is toggled */
+    onSyncToggle?: (field: string) => void;
 }
 const DOCUMENT_TYPE_OPTIONS = [
     { label: 'Article', value: 'article' },
@@ -44,14 +50,43 @@ const ACCESS_LEVEL_OPTIONS = [
     { label: '🔐 Restricted', value: 'restricted' },
 ];
 
+// ==================== Sync Label Helper ====================
+
+const SyncLabel: React.FC<{
+    text: string;
+    field: string;
+    isTarget?: boolean;
+    syncedFields?: Set<string>;
+    onSyncToggle?: (field: string) => void;
+}> = ({ text, field, isTarget, syncedFields, onSyncToggle }) => {
+    if (!isTarget) return <>{text}</>;
+    return (
+        <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <span>{text}</span>
+            <Checkbox
+                checked={syncedFields?.has(field)}
+                onChange={() => onSyncToggle?.(field)}
+                style={{ marginLeft: 8 }}
+            >
+                <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 'normal' }}>same as source</span>
+            </Checkbox>
+        </span>
+    );
+};
+
 // ==================== Component ====================
 
 const DocumentMetadataPanel: React.FC<DocumentMetadataPanelProps> = ({
                                                                          name,
                                                                          title,
                                                                          defaultOpen = true,
+                                                                         isTarget,
+                                                                         syncedFields,
+                                                                         onSyncToggle,
                                                                      }) => {
     const [showAdvanced, setShowAdvanced] = useState(false);
+
+    const isSynced = (field: string) => isTarget && syncedFields?.has(field);
 
     return (
         <div className="rounded-md border border-gray-200 p-4">
@@ -61,15 +96,29 @@ const DocumentMetadataPanel: React.FC<DocumentMetadataPanelProps> = ({
 
             {/* ==================== Basic Fields ==================== */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Form.Item name={[name, "title"]} label="Title"
-                           rules={[{ required: true, message: "Title is required" }]}>
-                    <Input placeholder="Document title" />
+                <Form.Item
+                    name={[name, "title"]}
+                    label={<SyncLabel text="Title" field="title" isTarget={isTarget} syncedFields={syncedFields} onSyncToggle={onSyncToggle} />}
+                    rules={[{ required: true, message: "Title is required" }]}
+                >
+                    <Input
+                        placeholder="Document title"
+                        disabled={isSynced('title')}
+                        className={isSynced('title') ? 'bg-blue-50' : ''}
+                    />
                 </Form.Item>
 
 
-                <Form.Item name={[name, "source"]} label="Source"
-                           rules={[{ required: true, message: "Source is required" }]}>
-                    <Input placeholder="e.g. Journal, Website, Organization" />
+                <Form.Item
+                    name={[name, "source"]}
+                    label={<SyncLabel text="Source" field="source" isTarget={isTarget} syncedFields={syncedFields} onSyncToggle={onSyncToggle} />}
+                    rules={[{ required: true, message: "Source is required" }]}
+                >
+                    <Input
+                        placeholder="e.g. Journal, Website, Organization"
+                        disabled={isSynced('source')}
+                        className={isSynced('source') ? 'bg-blue-50' : ''}
+                    />
                 </Form.Item>
                 <Form.Item name={[name, "language"]} label="Language"
                            rules={[{ required: true, message: "Language is required" }]}>
@@ -81,26 +130,41 @@ const DocumentMetadataPanel: React.FC<DocumentMetadataPanelProps> = ({
                     />
                 </Form.Item>
 
-                <Form.Item name={[name, "domain"]} label="Domain"
-                           rules={[{ required: true, message: "Domain is required" }]}>
+                <Form.Item
+                    name={[name, "domain"]}
+                    label={<SyncLabel text="Domain" field="domain" isTarget={isTarget} syncedFields={syncedFields} onSyncToggle={onSyncToggle} />}
+                    rules={[{ required: true, message: "Domain is required" }]}
+                >
                     <Select
                         options={DOMAIN_OPTIONS}
                         placeholder="Select domain"
                         showSearch
                         optionFilterProp="label"
+                        disabled={isSynced('domain')}
                     />
                 </Form.Item>
                 {/* ✅ Document Type */}
-                <Form.Item name={[name, "documentType"]} label="Document Type">
+                <Form.Item
+                    name={[name, "documentType"]}
+                    label={<SyncLabel text="Document Type" field="documentType" isTarget={isTarget} syncedFields={syncedFields} onSyncToggle={onSyncToggle} />}
+                >
                     <Select
                         options={DOCUMENT_TYPE_OPTIONS}
                         placeholder="Select type"
                         showSearch
                         optionFilterProp="label"
+                        disabled={isSynced('documentType')}
                     />
                 </Form.Item>
-                <Form.Item name={[name, "publisher"]} label="Publisher">
-                    <Input placeholder="Publisher / Institution" />
+                <Form.Item
+                    name={[name, "publisher"]}
+                    label={<SyncLabel text="Publisher" field="publisher" isTarget={isTarget} syncedFields={syncedFields} onSyncToggle={onSyncToggle} />}
+                >
+                    <Input
+                        placeholder="Publisher / Institution"
+                        disabled={isSynced('publisher')}
+                        className={isSynced('publisher') ? 'bg-blue-50' : ''}
+                    />
                 </Form.Item>
 
             </div>

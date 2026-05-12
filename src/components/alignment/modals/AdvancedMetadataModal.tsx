@@ -27,6 +27,26 @@ export const AdvancedMetadataModal: React.FC<MetadataModalProps> = ({
                                                                 onClose,
                                                             }) => {
     const [form] = Form.useForm();
+    const [syncedFields, setSyncedFields] = React.useState<Set<string>>(new Set());
+
+    const handleSyncToggle = (field: string) => {
+        setSyncedFields(prev => {
+            const next = new Set(prev);
+            if (next.has(field)) {
+                next.delete(field);
+            } else {
+                next.add(field);
+                const sourceValue = form.getFieldValue(['sourceMeta', field]);
+                if (sourceValue !== undefined) {
+                    const targetMeta = form.getFieldValue('targetMeta') || {};
+                    form.setFieldsValue({
+                        targetMeta: { ...targetMeta, [field]: sourceValue },
+                    });
+                }
+            }
+            return next;
+        });
+    };
 
     const handleMetadataSave = async (
         sourceMeta: any,
@@ -48,7 +68,7 @@ export const AdvancedMetadataModal: React.FC<MetadataModalProps> = ({
         <Modal
             open={visible}
             title="Document Metadata"
-            width={1000}
+            width={1100}
             destroyOnClose
             okText="Save"
             onCancel={onClose}
@@ -88,6 +108,9 @@ export const AdvancedMetadataModal: React.FC<MetadataModalProps> = ({
                     <DocumentMetadataPanel
                         name="targetMeta"
                         title="Target Document Metadata"
+                        isTarget
+                        syncedFields={syncedFields}
+                        onSyncToggle={handleSyncToggle}
                     />
                 </div>
             </Form>

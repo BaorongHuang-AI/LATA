@@ -4,10 +4,11 @@ import {splitIntoParagraphs} from "../utils/AlignUtils";
 import {saveParaAlignments, saveParagraphs} from "../db/paragraphs";
 import {v4 as uuidv4} from "uuid";
 import {db} from "../db/db";
-import {Link, LLMSettings} from "../types/alignment";
+import {Line, Link, LLMSettings} from "../types/alignment";
 import {getLLMSettings, loadDefaultModel, saveLLMSettings} from "../db/llmSettings";
 import {AlignmentPipelineService} from "../renderer/services/AlignmentPipelineService";
 import dbService from "../database/database.service";
+import {sendChatCompletion} from "../utils/sendChatCompletion";
 const { contextBridge, ipcRenderer } = require("electron");
 //
 // ipcMain.handle("align:paragraphs", async (_, payload) => {
@@ -1359,6 +1360,203 @@ ipcMain.handle("get-document-alignments", async (_, docId: number) => {
         console.error("get-document-alignments error", err);
         return [];
     }
+});
+
+// =====================
+// Word Alignment Handlers
+// =====================
+
+function persistWords(documentId: number, sentenceKey: string, side: string, words: Line[]) {
+    db.prepare(`
+        DELETE FROM document_words
+        WHERE document_id = ? AND sentence_key = ? AND side = ?
+    `).run(documentId, sentenceKey, side);
+
+    const stmt = db.prepare(`
+        INSERT INTO document_words
+            (document_id, sentence_key, side, word_index, word_key, text, comment, is_favorite)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    for (let i = 0; i < words.length; i++) {
+        const w = words[i];
+        stmt.run(
+            documentId,
+            sentenceKey,
+            side,
+            i,
+            w.lineNumber,
+            w.text,
+            w.comment ?? null,
+            w.isFavorite ? 1 : 0
+        );
+    }
+}
+
+function persistWordAlignments(documentId: number, sourceSentenceKey: string, targetSentenceKey: string, links: Link[]) {
+    db.prepare(`
+        DELETE FROM word_alignments
+        WHERE document_id = ? AND source_sentence_key = ? AND target_sentence_key = ?
+    `).run(documentId, sourceSentenceKey, targetSentenceKey);
+
+    const stmt = db.prepare(`
+        INSERT INTO word_alignments (
+            document_id, source_sentence_key, target_sentence_key,
+            source_word_keys, target_word_keys,
+            source_count, target_count,
+            confidence, strategy, comment, is_favorite
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    for (const link of links) {
+        stmt.run(
+            documentId,
+            sourceSentenceKey,
+            targetSentenceKey,
+            JSON.stringify(link.sourceIds),
+            JSON.stringify(link.targetIds),
+            link.sourceIds.length,
+            link.targetIds.length,
+            link.confidence ?? null,
+            link.strategy ?? null,
+            link.comment ?? null,
+            link.isFavorite ? 1 : 0
+        );
+    }
+}
+
+ipcMain.handle("word:getState", (_e, documentId: number, sourceKey: string, targetKey: string) => {
+    const sourceWords = db.prepare(`
+        SELECT * FROM document_words
+        WHERE document_id = ? AND sentence_key = ? AND side = 'source'
+        ORDER BY word_index
+    `).all(documentId, sourceKey);
+
+    const targetWords = db.prepare(`
+        SELECT * FROM document_words
+        WHERE document_id = ? AND sentence_key = ? AND side = 'target'
+        ORDER BY word_index
+    `).all(documentId, targetKey);
+
+    const sourceLines: Line[] = sourceWords.map((w: any) => ({
+        id: w.word_key,
+        lineNumber: w.word_key,
+        text: w.text,
+        comment: w.comment,
+        isFavorite: !!w.is_favorite,
+    }));
+
+    const targetLines: Line[] = targetWords.map((w: any) => ({
+        id: w.word_key,
+        lineNumber: w.word_key,
+        text: w.text,
+        comment: w.comment,
+        isFavorite: !!w.is_favorite,
+    }));
+
+    const alignments = db.prepare(`
+        SELECT * FROM word_alignments
+        WHERE document_id = ? AND source_sentence_key = ? AND target_sentence_key = ?
+        ORDER BY id
+    `).all(documentId, sourceKey, targetKey);
+
+    const wordLinks: Link[] = alignments.map((a: any) => ({
+        id: `w${a.id}`,
+        sourceIds: JSON.parse(a.source_word_keys),
+        targetIds: JSON.parse(a.target_word_keys),
+        confidence: a.confidence,
+        strategy: a.strategy ?? "",
+        comment: a.comment,
+        isFavorite: !!a.is_favorite,
+    }));
+
+    return { sourceWords: sourceLines, targetWords: targetLines, wordLinks };
+});
+
+ipcMain.handle("word:saveState", (_e, documentId: number, sourceKey: string, targetKey: string, state: any) => {
+    const tx = db.transaction(() => {
+        persistWords(documentId, sourceKey, "source", state.sourceWords);
+        persistWords(documentId, targetKey, "target", state.targetWords);
+        persistWordAlignments(documentId, sourceKey, targetKey, state.wordLinks);
+    });
+    tx();
+    return { ok: true };
+});
+
+ipcMain.handle("word:checkExists", (_e, documentId: number) => {
+    const rows = db.prepare(`
+        SELECT DISTINCT sentence_key FROM document_words
+        WHERE document_id = ?
+    `).all(documentId);
+
+    return rows.map((r: any) => r.sentence_key);
+});
+
+ipcMain.handle("word:segmentAndAlign", async (_e, payload: {
+    sourceText: string, targetText: string,
+    srcLang: string, tgtLang: string
+}) => {
+    const { sourceText, targetText, srcLang, tgtLang } = payload;
+
+    const promptRow = db.prepare(`
+        SELECT * FROM llm_prompts
+        WHERE task_type = 'word_segmentation_alignment' AND is_active = 1
+        LIMIT 1
+    `).get() as any;
+
+    if (!promptRow) {
+        throw new Error("No active word_segmentation_alignment prompt found");
+    }
+
+    const systemPrompt = promptRow.system_prompt || "";
+    const userPrompt = promptRow.user_prompt
+        .replace(/\{\{sourceLanguage\}\}/g, srcLang)
+        .replace(/\{\{targetLanguage\}\}/g, tgtLang)
+        .replace(/\{\{sourceSentence\}\}/g, sourceText)
+        .replace(/\{\{targetSentence\}\}/g, targetText);
+
+    const response = await sendChatCompletion({
+        messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+        ],
+        temperature: promptRow.temperature ?? 0.2,
+        maxTokens: promptRow.max_tokens ?? 2048,
+    });
+
+    const content = response?.content;
+    if (!content) {
+        throw new Error("Empty response from LLM");
+    }
+
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+        throw new Error("No JSON found in LLM response");
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]);
+
+    const sourceWords: Line[] = (parsed.sourceWords || []).map((w: any, i: number) => ({
+        id: `sw${i}`,
+        lineNumber: `sw${i}`,
+        text: w.text,
+    }));
+
+    const targetWords: Line[] = (parsed.targetWords || []).map((w: any, i: number) => ({
+        id: `tw${i}`,
+        lineNumber: `tw${i}`,
+        text: w.text,
+    }));
+
+    const wordLinks: Link[] = (parsed.alignments || []).map((a: any, i: number) => ({
+        id: `wl${Date.now()}${i}`,
+        sourceIds: a.sourceIds,
+        targetIds: a.targetIds,
+        confidence: a.confidence ?? 0.8,
+        strategy: "llm",
+    }));
+
+    return { sourceWords, targetWords, wordLinks };
 });
 
 export function markDocumentWithStatus(documentId: number, status: string): boolean {

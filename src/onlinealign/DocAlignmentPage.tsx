@@ -18,6 +18,7 @@ const DocAlignmentPage: React.FC = () => {
     const [form] = Form.useForm();
     const [errors, setErrors] = useState<string[]>([]);
     const [locked, setLocked] = useState(false);
+    const [syncedFields, setSyncedFields] = useState<Set<string>>(new Set());
     // const { document, loading, saving, saveDocument, updateDocument } = useDocument(documentId);
     const sourceMeta = Form.useWatch<DocumentMeta>("sourceMeta", form);
     const targetMeta = Form.useWatch<DocumentMeta>("targetMeta", form);
@@ -35,6 +36,25 @@ const DocAlignmentPage: React.FC = () => {
         percent: 0,
         detail: { current: 0, total: 0 }
     });
+
+    const handleSyncToggle = (field: string) => {
+        setSyncedFields(prev => {
+            const next = new Set(prev);
+            if (next.has(field)) {
+                next.delete(field);
+            } else {
+                next.add(field);
+                const sourceValue = form.getFieldValue(['sourceMeta', field]);
+                if (sourceValue !== undefined) {
+                    const targetMetaVal = form.getFieldValue('targetMeta') || {};
+                    form.setFieldsValue({
+                        targetMeta: { ...targetMetaVal, [field]: sourceValue },
+                    });
+                }
+            }
+            return next;
+        });
+    };
 
     // useEffect(() => {
     //     if (!documentId || !alignLoading) return;
@@ -420,7 +440,9 @@ const DocAlignmentPage: React.FC = () => {
                                     <DocumentMetadataPanel
                                         name="targetMeta"
                                         title="Target Document Metadata"
-                                        // disabled={locked}
+                                        isTarget
+                                        syncedFields={syncedFields}
+                                        onSyncToggle={handleSyncToggle}
                                     />
                                 </div>
                             </div>

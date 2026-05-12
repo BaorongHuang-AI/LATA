@@ -298,6 +298,21 @@ contextBridge.exposeInMainWorld('api', {
     getDocumentAlignments: (docId: number) =>
         ipcRenderer.invoke("get-document-alignments", docId),
 
+    // ================= WORD ALIGNMENT =================
+    getWordAlignmentState: (documentId: number, sourceKey: string, targetKey: string) =>
+        ipcRenderer.invoke("word:getState", documentId, sourceKey, targetKey),
+
+    saveWordAlignment: (documentId: number, sourceKey: string, targetKey: string, state: any) =>
+        ipcRenderer.invoke("word:saveState", documentId, sourceKey, targetKey, state),
+
+    checkWordAlignments: (documentId: number) =>
+        ipcRenderer.invoke("word:checkExists", documentId),
+
+    segmentAndAlignWords: (payload: {
+        sourceText: string; targetText: string;
+        srcLang: string; tgtLang: string;
+    }) => ipcRenderer.invoke("word:segmentAndAlign", payload),
+
     // ================= FINISHED =================
     onAlignmentFinished: (callback: (data: any) => void) => {
         if (finishedListener) {

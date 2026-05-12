@@ -656,8 +656,49 @@ CREATE TABLE IF NOT EXISTS sentence_alignments (
 -- Index for faster lookups
 CREATE INDEX IF NOT EXISTS idx_alignments_document 
   ON sentence_alignments(document_id);
-CREATE INDEX IF NOT EXISTS idx_alignments_paragraphs 
+CREATE INDEX IF NOT EXISTS idx_alignments_paragraphs
   ON sentence_alignments(source_paragraph_id, target_paragraph_id);
+
+-- =====================
+-- Word Tables
+-- =====================
+CREATE TABLE IF NOT EXISTS document_words (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  document_id INTEGER NOT NULL,
+  sentence_key TEXT NOT NULL,
+  side TEXT NOT NULL CHECK(side IN ('source', 'target')),
+  word_index INTEGER NOT NULL,
+  word_key TEXT NOT NULL UNIQUE,
+  text TEXT NOT NULL,
+  comment TEXT,
+  is_favorite INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_words_document ON document_words(document_id);
+CREATE INDEX IF NOT EXISTS idx_words_sentence ON document_words(sentence_key, side);
+
+CREATE TABLE IF NOT EXISTS word_alignments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  document_id INTEGER NOT NULL,
+  source_sentence_key TEXT NOT NULL,
+  target_sentence_key TEXT NOT NULL,
+  source_word_keys TEXT NOT NULL,
+  target_word_keys TEXT NOT NULL,
+  source_count INTEGER NOT NULL,
+  target_count INTEGER NOT NULL,
+  confidence REAL,
+  strategy TEXT,
+  comment TEXT,
+  is_favorite INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_word_alignments_doc ON word_alignments(document_id);
+CREATE INDEX IF NOT EXISTS idx_word_alignments_pair ON word_alignments(source_sentence_key, target_sentence_key);
 `;
 
 const schemaNew = `
@@ -1169,6 +1210,52 @@ CREATE TABLE IF NOT EXISTS  "sentence_alignments" (
 );
 
 -- ----------------------------
+-- Table structure for document_words
+-- ----------------------------
+
+CREATE TABLE IF NOT EXISTS "document_words" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "document_id" INTEGER NOT NULL,
+  "sentence_key" TEXT NOT NULL,
+  "side" TEXT NOT NULL CHECK(side IN ('source', 'target')),
+  "word_index" INTEGER NOT NULL,
+  "word_key" TEXT NOT NULL UNIQUE,
+  "text" TEXT NOT NULL,
+  "comment" TEXT,
+  "is_favorite" INTEGER DEFAULT 0,
+  "created_at" DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY ("document_id") REFERENCES "documents" ("id") ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS "idx_words_document" ON "document_words" ("document_id");
+CREATE INDEX IF NOT EXISTS "idx_words_sentence" ON "document_words" ("sentence_key", "side");
+
+-- ----------------------------
+-- Table structure for word_alignments
+-- ----------------------------
+
+CREATE TABLE IF NOT EXISTS "word_alignments" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "document_id" INTEGER NOT NULL,
+  "source_sentence_key" TEXT NOT NULL,
+  "target_sentence_key" TEXT NOT NULL,
+  "source_word_keys" TEXT NOT NULL,
+  "target_word_keys" TEXT NOT NULL,
+  "source_count" INTEGER NOT NULL,
+  "target_count" INTEGER NOT NULL,
+  "confidence" REAL,
+  "strategy" TEXT,
+  "comment" TEXT,
+  "is_favorite" INTEGER DEFAULT 0,
+  "created_at" DATETIME DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY ("document_id") REFERENCES "documents" ("id") ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS "idx_word_alignments_doc" ON "word_alignments" ("document_id");
+CREATE INDEX IF NOT EXISTS "idx_word_alignments_pair" ON "word_alignments" ("source_sentence_key", "target_sentence_key");
+
+-- ----------------------------
 -- Table structure for session
 -- ----------------------------
 
@@ -1537,6 +1624,43 @@ If unsure, return {}.',
     '2026-02-01 14:49:22',
     '2026-02-01 14:49:22'
 );
+
+INSERT OR IGNORE INTO "llm_prompts"
+("task_type", "name", "user_prompt", "system_prompt", "model", "temperature", "max_tokens", "is_active", "created_at", "updated_at")
+VALUES
+(
+    'word_segmentation_alignment',
+    'Word Segmentation & Alignment Template',
+    'Source language: {{sourceLanguage}}
+Target language: {{targetLanguage}}
+
+Source sentence:
+"""
+{{sourceSentence}}
+"""
+
+Target sentence:
+"""
+{{targetSentence}}
+"""
+
+Break each sentence into words/terms, then align them by semantic correspondence. Output JSON:
+{
+  "sourceWords": [{"id": "w0", "text": "..."}],
+  "targetWords": [{"id": "w0", "text": "..."}],
+  "alignments": [
+    {"sourceIds": ["w0"], "targetIds": ["w0"], "confidence": 0.95}
+  ]
+}',
+    'You are a professional bilingual word alignment engine. Break sentences into meaningful terms/words. Align them by semantic correspondence. Return ONLY valid JSON.',
+    'gpt-4.1-mini',
+    0.2,
+    2048,
+    1,
+    '2026-03-01 00:00:00',
+    '2026-03-01 00:00:00'
+);
+
 INSERT   OR IGNORE  INTO "translation_tags"
 ("id", "name", "description", "sample", "color", "created_at", "updated_at")
 VALUES

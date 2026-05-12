@@ -7,6 +7,7 @@ import {QuickLinkModal} from "./modals/QuickLinkModal";
 import {AlignmentMetadata, FontSettings, Line, Link} from "../../types/alignment";
 import {DocumentMetadata} from "../../utils/AlignUtils";
 import {AdvancedMetadataModal} from "./modals/AdvancedMetadataModal";
+import WordAlignmentModal from "./modals/WordAlignmentModal";
 
 interface ModalsContainerProps {
     documentId: any,
@@ -49,6 +50,9 @@ interface ModalsContainerProps {
     onToggleLinkFavorite?: (linkId: string) => void;
     onDeleteLink?: (linkId: string) => void;
     onUpdateLink?:(linkId: any, updates: any) => void;
+    // Word alignment
+    wordAlignmentPair?: { sourceKey: string; targetKey: string; sourceText: string; targetText: string } | null;
+    onWordAlignmentSaved?: () => void;
 }
 
 export const ModalsContainer: React.FC<ModalsContainerProps> = ({
@@ -82,6 +86,8 @@ export const ModalsContainer: React.FC<ModalsContainerProps> = ({
                                                                     onToggleLinkFavorite,
                                                                     onDeleteLink,
                                                                     onUpdateLink,
+                                                                    wordAlignmentPair,
+                                                                    onWordAlignmentSaved,
                                                                 }) => {
     const closeModal = (key:any) => {
         setModals((prev) => ({ ...prev, [key]: false }));
@@ -170,7 +176,31 @@ export const ModalsContainer: React.FC<ModalsContainerProps> = ({
                 linkFormState={linkFormState}
                 setLinkFormState={setLinkFormState} // ADD THIS
                 onUpdate={onUpdateLink}
+                onOpenWordAlignment={
+                    wordAlignmentPair
+                        ? () => {
+                              setModals((prev: any) => ({ ...prev, linkDetails: false, wordAlignment: true }));
+                              onCloseLinkDetails?.();
+                          }
+                        : undefined
+                }
             />
+
+            {wordAlignmentPair && (
+                <WordAlignmentModal
+                    visible={modals.wordAlignment}
+                    documentId={Number(documentId)}
+                    sourceSentenceKey={wordAlignmentPair.sourceKey}
+                    targetSentenceKey={wordAlignmentPair.targetKey}
+                    sourceText={wordAlignmentPair.sourceText}
+                    targetText={wordAlignmentPair.targetText}
+                    srcLang={sourceMetadata?.language || ""}
+                    tgtLang={targetMetadata?.language || ""}
+                    fontSettings={fontSettings}
+                    onClose={() => setModals((prev: any) => ({ ...prev, wordAlignment: false }))}
+                    onSaved={onWordAlignmentSaved || (() => {})}
+                />
+            )}
         </>
     );
 };
