@@ -17,11 +17,13 @@ export const useAlignmentState = (alignmentType: string, documentId?: string) =>
     });
 
     const [initialState, setInitialState] = useState<AppState | null>(null);
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         console.log("documentId", documentId);
         if (!documentId) return;
 
+        setLoading(true);
         window.api
             .getAlignmentState(Number(documentId), alignmentType)
             .then((state: AppState) => {
@@ -34,7 +36,8 @@ export const useAlignmentState = (alignmentType: string, documentId?: string) =>
                 setTargetMeta(state.targetMeta ?? null);
 
                 setInitialState(state);
-            });
+            })
+            .finally(() => setLoading(false));
     }, [documentId]);
 
     return {
@@ -51,5 +54,6 @@ export const useAlignmentState = (alignmentType: string, documentId?: string) =>
         setFontSettings,
 
         initialState,
+        loading,
     };
 };

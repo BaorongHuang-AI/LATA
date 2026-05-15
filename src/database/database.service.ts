@@ -17,9 +17,9 @@ class DatabaseService {
 
         const stmt = db.prepare(`
             INSERT INTO documents (
-                title, document_type, version, 
-                source_content, target_content, status
-            ) VALUES (?, ?, ?, ?, ?, ?)
+                title, document_type, version,
+                source_content, target_content, status, project_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
         `);
 
         const result = stmt.run(
@@ -28,7 +28,8 @@ class DatabaseService {
             doc.version || null,
             doc.source_content || null,
             doc.target_content || null,
-            doc.status || 'draft'
+            doc.status || 'draft',
+            doc.project_id || null
         );
 
         return result.lastInsertRowid as number;
@@ -413,7 +414,8 @@ class DatabaseService {
       COALESCE(sa.manyToOne, 0) AS many_to_one,
       COALESCE(sa.manyToMany, 0) AS many_to_many,
       COALESCE(sa.totalAlignments, 0) AS total_alignments,
-      d.updated_at
+      d.updated_at,
+      d.project_id
     FROM documents d
     JOIN document_metadata sm
       ON sm.document_id = d.id AND sm.metadata_type = 'source'
@@ -434,6 +436,18 @@ class DatabaseService {
   `).all();
 
         return { stats, documents };
+    }
+
+    // ==================== Project-Document Association ====================
+
+    addDocumentToProject(documentId: number, projectId: number): void {
+        const stmt = db.prepare('UPDATE documents SET project_id = ? WHERE id = ?');
+        stmt.run(projectId, documentId);
+    }
+
+    removeDocumentFromProject(documentId: number): void {
+        const stmt = db.prepare('UPDATE documents SET project_id = NULL WHERE id = ?');
+        stmt.run(documentId);
     }
 }
 

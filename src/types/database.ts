@@ -10,6 +10,7 @@ export interface Document {
     source_content?: string;
     target_content?: string;
     status?: 'draft' | 'in_progress' | 'completed' | 'archived';
+    project_id?: number | null;
 }
 
 export interface DocumentMetadata {

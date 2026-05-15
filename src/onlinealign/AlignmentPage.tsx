@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { message } from 'antd';
 import {useNavigate, useParams} from 'react-router-dom';
 import { AlignmentHeader } from '../components/alignment/AlignmentHeader';
@@ -176,6 +176,7 @@ const AlignmentPage: React.FC<AlignmentPageProps> = ({ alignmentType }) => {
         fontSettings,
         setFontSettings,
         initialState,
+        loading: initialLoading,
     } = useAlignmentState(alignmentType, documentId);
 
     // History management
@@ -305,6 +306,22 @@ const AlignmentPage: React.FC<AlignmentPageProps> = ({ alignmentType }) => {
         field: 'comment' | 'lineNumber';
     } | null>(null);
     const [editValue, setEditValue] = useState('');
+
+    // Processing state for operations
+    const [processing, setProcessing] = useState(false);
+    const processingRef = useRef(false);
+
+    // Show processing indicator on workingState changes
+    useEffect(() => {
+        if (processingRef.current) {
+            // skip the initial load
+            processingRef.current = false;
+            return;
+        }
+        setProcessing(true);
+        const timer = setTimeout(() => setProcessing(false), 400);
+        return () => clearTimeout(timer);
+    }, [workingState]);
 
     // Word alignment state
     const [wordAlignmentPair, setWordAlignmentPair] = useState<{
@@ -900,6 +917,96 @@ const AlignmentPage: React.FC<AlignmentPageProps> = ({ alignmentType }) => {
         moveLine(type, lineId, 'down');
     };
 
+    const deleteLine = (type: 'source' | 'target', lineId: string) => {
+        const lines = type === 'source' ? sourceLines : targetLines;
+        if (lines.length <= 1) {
+            message.warning('Cannot delete the only remaining line.');
+            return;
+        }
+
+        // Remove links referencing this line
+        const remainingLinks = links.filter(link => {
+            const relevantIds = type === 'source' ? link.sourceIds : link.targetIds;
+            return !relevantIds.includes(lineId);
+        });
+
+        // Remove the line
+        const newLines = lines.filter(l => l.id !== lineId);
+
+        // Reorder
+        const prefix = type === 'source' ? 'sp' : 'tp';
+        const reorderedLines = reorderLines(newLines, prefix, alignmentType);
+
+        // Update link references after reorder
+        const idMapping = new Map<string, string>();
+        lines.forEach((oldLine, index) => {
+            if (oldLine.id === lineId) return;
+            const matchingNew = reorderedLines.find(l => l.text === oldLine.text);
+            if (matchingNew) idMapping.set(oldLine.id, matchingNew.id);
+        });
+
+        const updatedLinks = remainingLinks.map(link => {
+            if (type === 'source') {
+                return { ...link, sourceIds: link.sourceIds.map(id => idMapping.get(id) || id) };
+            } else {
+                return { ...link, targetIds: link.targetIds.map(id => idMapping.get(id) || id) };
+            }
+        });
+
+        if (type === 'source') {
+            updateState({ sourceLines: reorderedLines, links: updatedLinks });
+        } else {
+            updateState({ targetLines: reorderedLines, links: updatedLinks });
+        }
+
+        message.success('Line deleted');
+    };
+
+    const insertLineBelow = (type: 'source' | 'target', lineId: string) => {
+        const lines = type === 'source' ? sourceLines : targetLines;
+        const lineIndex = lines.findIndex(l => l.id === lineId);
+        if (lineIndex === -1) return;
+
+        const newLine: Line = {
+            id: `${type[0]}${Date.now()}`,
+            lineNumber: '',
+            text: '',
+            isFavorite: false,
+        };
+
+        const newLines = [
+            ...lines.slice(0, lineIndex + 1),
+            newLine,
+            ...lines.slice(lineIndex + 1),
+        ];
+
+        const prefix = type === 'source' ? 'sp' : 'tp';
+        const reorderedLines = reorderLines(newLines, prefix, alignmentType);
+
+        // Map old IDs to new IDs
+        const idMapping = new Map<string, string>();
+        lines.forEach((oldLine, index) => {
+            const matchingNew = reorderedLines.find(l => l.text === oldLine.text);
+            if (matchingNew) idMapping.set(oldLine.id, matchingNew.id);
+        });
+
+        const updatedLinks = links.map(link => {
+            if (type === 'source') {
+                return { ...link, sourceIds: link.sourceIds.map(id => idMapping.get(id) || id) };
+            } else {
+                return { ...link, targetIds: link.targetIds.map(id => idMapping.get(id) || id) };
+            }
+        });
+
+        if (type === 'source') {
+            updateState({ sourceLines: reorderedLines, links: updatedLinks });
+        } else {
+            updateState({ targetLines: reorderedLines, links: updatedLinks });
+        }
+
+        message.success('Empty line inserted below');
+    };
+
     const updateLink =  (linkId, updates) => {
         const updatedLinks = links.map(link =>
             link.id === linkId
@@ -913,7 +1020,16 @@ const AlignmentPage: React.FC<AlignmentPageProps> = ({ alignmentType }) => {
         });
     }
 
-    if (!initialState) return <div>Loading alignment…</div>;
+    if (initialLoading || !initialState) {
+        return (
+            <div className="h-screen flex items-center justify-center bg-gray-50">
+                <div className="text-center space-y-4">
+                    <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
+                    <p className="text-gray-500 text-sm">Loading alignment…</p>
+                </div>
+            </div>
+        );
+    }
 
     function indexByLineNumber(lines: any) {
         return new Map<any, any>(
@@ -1056,6 +1172,9 @@ const AlignmentPage: React.FC<AlignmentPageProps> = ({ alignmentType }) => {
                 onSplitLine={(type, lineId, pos) => splitLine(type, lineId, pos)}
                 onMoveUp={(type, lineId) => moveLineUp(type, lineId)}
                 onMoveDown={(type, lineId) => moveLineDown(type, lineId)}
+                onDeleteLine={(type, lineId) => deleteLine(type, lineId)}
+                onInsertLineBelow={(type, lineId) => insertLineBelow(type, lineId)}
+                processing={processing}
                 sentencesWithWordAlignments={sentencesWithWordAlignments}
                 onLinkClick={(linkId) => {
                     setSelectedLinkForDetails(linkId);

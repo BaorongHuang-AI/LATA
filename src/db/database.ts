@@ -1,4 +1,5 @@
 import {db} from "./db";
+import {initProjectSchema} from "./projectSchema";
 //
 // const Database = require('better-sqlite3');
 // const path = require('path');
@@ -1720,5 +1721,8 @@ Arabic Text: لا تنس أن تتصل به',
 
 `
 db.exec(schemaNew);
+
+// Initialize project schema
+initProjectSchema();
 
 // module.exports = db;

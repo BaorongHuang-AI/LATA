@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Button, Input, Tooltip } from 'antd';
-import { Edit3, Star, StarOff, MessageSquare, Save, X, Scissors, ChevronUp, ChevronDown } from 'lucide-react';
+import { Edit3, Star, StarOff, MessageSquare, Save, X, Scissors, ChevronUp, ChevronDown, Trash2, Plus } from 'lucide-react';
 import { getConfidenceColor, getConfidenceLabel } from '../../utils/confidence';
 import type { Link } from '../../types/alignment';
 
@@ -31,6 +31,8 @@ export const LineItem: React.FC<any> = ({
                                             isRTL,
                                             onMoveUp,
                                             onMoveDown,
+                                            onDeleteLine,
+                                            onInsertLineBelow,
                                             totalLines,
                                         }) => {
     const color = type === 'source' ? 'blue' : 'green';
@@ -122,6 +124,8 @@ export const LineItem: React.FC<any> = ({
                         } : undefined}
                         onMoveUp={onMoveUp}
                         onMoveDown={onMoveDown}
+                        onDeleteLine={onDeleteLine}
+                        onInsertLineBelow={onInsertLineBelow}
                         canMoveUp={index > 0}
                         canMoveDown={index < totalLines - 1}
                         alignmentType={alignmentType}
@@ -289,19 +293,21 @@ const EditMode = React.forwardRef<any, {
 // });
 const ViewMode = ({ text, comment, fontFamily, fontSize, onEdit, isRTL }) => (
     <div
-        className="leading-relaxed text-gray-900 hover:bg-gray-50 rounded px-1 cursor-text"
+        className="leading-relaxed rounded px-1 cursor-text min-h-[1.5rem]"
         style={{
             fontFamily,
             fontSize,
             direction: isRTL ? "rtl" : "ltr",
             textAlign: isRTL ? "right" : "left",
+            color: text ? undefined : '#9ca3af',
+            fontStyle: text ? undefined : 'italic',
         }}
         onClick={(e) => {
             e.stopPropagation();
             onEdit();
         }}
     >
-        <p>{text}</p>
+        <p>{text || 'Empty cell — click to edit'}</p>
 
         {comment && (
             <div className="mt-1 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded p-1">
@@ -321,6 +327,8 @@ const LineActions = ({
                          onSplit,
                          onMoveUp,
                          onMoveDown,
+                         onDeleteLine,
+                         onInsertLineBelow,
                          canMoveUp,
                          canMoveDown,
                          alignmentType
@@ -351,16 +359,20 @@ const LineActions = ({
             )}
         </div>
         <div className="flex gap-1">
-            {/*{onSplit && (*/}
-            {/*    <Tooltip title="Split line">*/}
-            {/*        <IconBtn onClick={onSplit} title="Split">*/}
-            {/*            <Scissors size={15} />*/}
-            {/*        </IconBtn>*/}
-            {/*    </Tooltip>*/}
-            {/*)}*/}
-            {/*<IconBtn onClick={onEdit} title="Edit">*/}
-            {/*    <Edit3 size={15} />*/}
-            {/*</IconBtn>*/}
+            {alignmentType && onInsertLineBelow && (
+                <Tooltip title="Insert empty cell below">
+                    <IconBtn onClick={onInsertLineBelow} title="Insert below">
+                        <Plus size={15} />
+                    </IconBtn>
+                </Tooltip>
+            )}
+            {alignmentType && onDeleteLine && (
+                <Tooltip title="Delete this cell">
+                    <IconBtn onClick={onDeleteLine} title="Delete cell">
+                        <Trash2 size={15} className="text-red-400 hover:text-red-600" />
+                    </IconBtn>
+                </Tooltip>
+            )}
             <IconBtn onClick={onToggleFavorite} title="Favorite">
                 {isFavorite ? (
                     <Star size={15} className="text-yellow-500 fill-current" />

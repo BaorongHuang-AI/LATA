@@ -32,8 +32,11 @@ interface AlignmentTableProps {
     onSplitLine: (type: 'source' | 'target', lineId: string, cursorPosition: number) => void;
     onMoveUp: (type: 'source' | 'target', lineId: string) => void;
     onMoveDown: (type: 'source' | 'target', lineId: string) => void;
+    onDeleteLine: (type: 'source' | 'target', lineId: string) => void;
+    onInsertLineBelow: (type: 'source' | 'target', lineId: string) => void;
     onLinkClick: (linkId: string) => void;
     sentencesWithWordAlignments?: Set<string>;
+    processing?: boolean;
 }
 
 export const AlignmentTable: React.FC<AlignmentTableProps> = ({
@@ -61,8 +64,11 @@ export const AlignmentTable: React.FC<AlignmentTableProps> = ({
     onSplitLine,
     onMoveUp,
     onMoveDown,
+    onDeleteLine,
+    onInsertLineBelow,
     onLinkClick,
     sentencesWithWordAlignments,
+    processing,
 }) => {
     const rows = useMemo(
         () => buildAlignmentRows(sourceLines, targetLines, links),
@@ -82,6 +88,12 @@ export const AlignmentTable: React.FC<AlignmentTableProps> = ({
 
     return (
         <div className="flex-1 overflow-y-auto bg-gray-50">
+            {/* Processing indicator */}
+            {processing && (
+                <div className="sticky top-0 z-20 w-full h-1 bg-blue-100">
+                    <div className="h-full bg-blue-500 animate-pulse transition-all duration-300" style={{ width: '100%' }} />
+                </div>
+            )}
             {/* Sticky column headers */}
             <div className="sticky top-0 z-10 bg-white border-b-2 border-gray-300 shadow-sm">
                 <div className="flex">
@@ -161,6 +173,8 @@ export const AlignmentTable: React.FC<AlignmentTableProps> = ({
                         onSplitLine={onSplitLine}
                         onMoveUp={onMoveUp}
                         onMoveDown={onMoveDown}
+                        onDeleteLine={onDeleteLine}
+                        onInsertLineBelow={onInsertLineBelow}
                         onLinkClick={onLinkClick}
                         sentencesWithWordAlignments={sentencesWithWordAlignments}
                     />
@@ -202,6 +216,8 @@ interface AlignmentRowProps {
     onSplitLine: (type: 'source' | 'target', lineId: string, cursorPosition: number) => void;
     onMoveUp: (type: 'source' | 'target', lineId: string) => void;
     onMoveDown: (type: 'source' | 'target', lineId: string) => void;
+    onDeleteLine: (type: 'source' | 'target', lineId: string) => void;
+    onInsertLineBelow: (type: 'source' | 'target', lineId: string) => void;
     onLinkClick: (linkId: string) => void;
     sentencesWithWordAlignments?: Set<string>;
 }
@@ -230,6 +246,8 @@ const AlignmentRowComponent: React.FC<AlignmentRowProps> = ({
     onSplitLine,
     onMoveUp,
     onMoveDown,
+    onDeleteLine,
+    onInsertLineBelow,
     onLinkClick,
     sentencesWithWordAlignments,
 }) => {
@@ -281,6 +299,8 @@ const AlignmentRowComponent: React.FC<AlignmentRowProps> = ({
                                 onSplitLine={onSplitLine}
                                 onMoveUp={onMoveUp}
                                 onMoveDown={onMoveDown}
+                                onDeleteLine={onDeleteLine}
+                                onInsertLineBelow={onInsertLineBelow}
                             />
                         ))}
                     </div>
@@ -352,6 +372,8 @@ const AlignmentRowComponent: React.FC<AlignmentRowProps> = ({
                                 onSplitLine={onSplitLine}
                                 onMoveUp={onMoveUp}
                                 onMoveDown={onMoveDown}
+                                onDeleteLine={onDeleteLine}
+                                onInsertLineBelow={onInsertLineBelow}
                             />
                         ))}
                     </div>
@@ -388,6 +410,8 @@ interface CellLineItemProps {
     onSplitLine: (type: 'source' | 'target', lineId: string, cursorPosition: number) => void;
     onMoveUp: (type: 'source' | 'target', lineId: string) => void;
     onMoveDown: (type: 'source' | 'target', lineId: string) => void;
+    onDeleteLine: (type: 'source' | 'target', lineId: string) => void;
+    onInsertLineBelow: (type: 'source' | 'target', lineId: string) => void;
 }
 
 const CellLineItem: React.FC<CellLineItemProps> = ({
@@ -411,6 +435,8 @@ const CellLineItem: React.FC<CellLineItemProps> = ({
     onSplitLine,
     onMoveUp,
     onMoveDown,
+    onDeleteLine,
+    onInsertLineBelow,
 }) => {
     const { line, globalIndex } = item;
     const fontFamily = type === 'source' ? fontSettings.sourceFontFamily : fontSettings.targetFontFamily;
@@ -454,6 +480,8 @@ const CellLineItem: React.FC<CellLineItemProps> = ({
             isRTL={isRTL}
             onMoveUp={() => onMoveUp(type, line.id)}
             onMoveDown={() => onMoveDown(type, line.id)}
+            onDeleteLine={() => onDeleteLine(type, line.id)}
+            onInsertLineBelow={() => onInsertLineBelow(type, line.id)}
             totalLines={totalLines}
         />
     );

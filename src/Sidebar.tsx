@@ -7,6 +7,7 @@ export const Sidebar = ({ collapsed, setCollapsed }: { collapsed: boolean, setCo
 
     const menuItems = [
         { name: "Dashboard", path: "/dashboard", icon: "🏠" },
+        { name: "Projects", path: "/projects", icon: "📁" },
         // { name: "Aligner", path: "/onlinealign", icon: "🏠" },
         // { name: "Paracorpus Builder", path: "/paracorpus", icon: "📚" },
         // { name: "Translation Training", path: "/translationtraining", icon: "📚" },

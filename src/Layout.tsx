@@ -15,6 +15,7 @@ import PromptManager from "./settings/PromptManager";
 import TagManager from "./settings/TagManager";
 import DocumentViewer from "./viewer/DocumentViewer";
 import DocumentViewerWrapper from "./viewer/DocumentViewerWrapper";
+import ProjectsPage from "./projects/ProjectsPage";
 // import ParaAlignmentPage from "./onlinealign/ParaAlignmentPage";
 
 
@@ -55,6 +56,7 @@ const Layout = () => {
                     <Route path="/docalign/:documentId" element={<DocAlignmentPage />} />
                     <Route path="/alignpara/:documentId" element={<ParaAlignmentPage />} />
                     <Route path="/alignsent/:documentId" element={<SentAlignmentPage />} />
+                    <Route path="/projects" element={<ProjectsPage />} />
                 </Routes>
             </div>
         </div>

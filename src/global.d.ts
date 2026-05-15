@@ -383,6 +383,25 @@ declare global {
             onAlignmentFinished: (
                 callback: (data: AlignmentFinishedPayload) => void
             ) => void;
+
+            // ==================== Projects ====================
+            createProject(project: any): Promise<number>;
+            getProject(id: number): Promise<any>;
+            getProjectWithMetadata(id: number): Promise<any>;
+            getAllProjects(): Promise<any[]>;
+            getAllProjectsWithMetadata(): Promise<any[]>;
+            updateProject(id: number, updates: any): Promise<void>;
+            deleteProject(id: number): Promise<void>;
+            upsertProjectMetadata(metadata: any): Promise<void>;
+            getProjectMetadata(projectId: number): Promise<any>;
+            getInheritedMetadata(projectId: number): Promise<any>;
+            getProjectDocuments(projectId: number): Promise<any[]>;
+            addDocumentToProject(documentId: number, projectId: number): Promise<void>;
+            removeDocumentFromProject(documentId: number): Promise<void>;
+            saveProjectWithMetadata(data: any): Promise<number>;
+            updateProjectWithMetadata(id: number, data: any): Promise<void>;
+            exportProject(projectId: number): Promise<any>;
+            saveProjectZip(data: any): Promise<any>;
         };
     }
 }

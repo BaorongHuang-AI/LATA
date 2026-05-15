@@ -3,9 +3,8 @@ import {Form, Input, Button, Divider, Collapse, message} from "antd";
 import { FileText, Languages, AlignLeft } from "lucide-react";
 import DocumentMetadataPanel from "./DocumentMetadataPanel";
 import {isRTL, validateMetadata} from "../utils/AlignUtils";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {DocumentMeta} from "../types/database";
-import { useNavigate } from "react-router-dom";
 
 // import {useDocument} from "../renderer/hooks/useDocument";
 
@@ -25,6 +24,8 @@ const DocAlignmentPage: React.FC = () => {
     const isExistingDoc = !!documentId;
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
+    const projectId = (location.state as any)?.projectId as number | undefined;
     const [alignLoading, setAlignLoading] = useState(false);
     const [running, setRunning] = useState(false);
     const [activeDocumentId, setActiveDocumentId] = useState<number | null>(
@@ -187,10 +188,55 @@ const DocAlignmentPage: React.FC = () => {
         );
     }, [sourceMeta, targetMeta]);
 
+    useEffect(() => {
+        if (isExistingDoc || !projectId) return;
+
+        window.api.getProjectMetadata(projectId).then((pm: any) => {
+            if (!pm) return;
+            const sourceMetaDefaults: Record<string, any> = {};
+            const targetMetaDefaults: Record<string, any> = {};
+
+            if (pm.source) { sourceMetaDefaults.source = pm.source; targetMetaDefaults.source = pm.source; }
+            if (pm.publisher) { sourceMetaDefaults.publisher = pm.publisher; targetMetaDefaults.publisher = pm.publisher; }
+            if (pm.publish_date) { sourceMetaDefaults.publishDate = pm.publish_date; targetMetaDefaults.publishDate = pm.publish_date; }
+            if (pm.domain) { sourceMetaDefaults.domain = pm.domain; targetMetaDefaults.domain = pm.domain; }
+            if (pm.source_language) sourceMetaDefaults.language = pm.source_language;
+            if (pm.target_language) targetMetaDefaults.language = pm.target_language;
+            if (pm.authors) { sourceMetaDefaults.authors = pm.authors; targetMetaDefaults.authors = pm.authors; }
+            if (pm.translators) { sourceMetaDefaults.translators = pm.translators; targetMetaDefaults.translators = pm.translators; }
+            if (pm.editors) { sourceMetaDefaults.editors = pm.editors; targetMetaDefaults.editors = pm.editors; }
+            if (pm.contributors) { sourceMetaDefaults.contributors = pm.contributors; targetMetaDefaults.contributors = pm.contributors; }
+            if (pm.doi) { sourceMetaDefaults.doi = pm.doi; targetMetaDefaults.doi = pm.doi; }
+            if (pm.isbn) { sourceMetaDefaults.isbn = pm.isbn; targetMetaDefaults.isbn = pm.isbn; }
+            if (pm.volume) { sourceMetaDefaults.volume = pm.volume; targetMetaDefaults.volume = pm.volume; }
+            if (pm.issue) { sourceMetaDefaults.issue = pm.issue; targetMetaDefaults.issue = pm.issue; }
+            if (pm.page_range) { sourceMetaDefaults.pageRange = pm.page_range; targetMetaDefaults.pageRange = pm.page_range; }
+            if (pm.edition) { sourceMetaDefaults.edition = pm.edition; targetMetaDefaults.edition = pm.edition; }
+            if (pm.url) { sourceMetaDefaults.url = pm.url; targetMetaDefaults.url = pm.url; }
+            if (pm.country) { sourceMetaDefaults.country = pm.country; targetMetaDefaults.country = pm.country; }
+            if (pm.copyright_holder) { sourceMetaDefaults.copyrightHolder = pm.copyright_holder; targetMetaDefaults.copyrightHolder = pm.copyright_holder; }
+            if (pm.license) { sourceMetaDefaults.license = pm.license; targetMetaDefaults.license = pm.license; }
+            if (pm.access_level) { sourceMetaDefaults.accessLevel = pm.access_level; targetMetaDefaults.accessLevel = pm.access_level; }
+            if (pm.keywords) { sourceMetaDefaults.keywords = pm.keywords; targetMetaDefaults.keywords = pm.keywords; }
+            if (pm.notes) { sourceMetaDefaults.notes = pm.notes; targetMetaDefaults.notes = pm.notes; }
+
+            const currentValues = form.getFieldsValue();
+            form.setFieldsValue({
+                sourceMeta: { ...(currentValues.sourceMeta || {}), ...sourceMetaDefaults },
+                targetMeta: { ...(currentValues.targetMeta || {}), ...targetMetaDefaults },
+            });
+        }).catch(console.error);
+    }, [projectId, isExistingDoc]);
+
     /* =====================
        Validation helpers
     ===================== */
+    const sourceContent: string = Form.useWatch("sourceContent", form) || "";
+    const targetContent: string = Form.useWatch("targetContent", form) || "";
+
+    const hasContent = sourceContent.trim().length > 0 || targetContent.trim().length > 0;
     const isValid =
+        hasContent &&
         !validateMetadata(sourceMeta, "Source").length &&
         !validateMetadata(targetMeta, "Target").length;
 
@@ -199,15 +245,26 @@ const DocAlignmentPage: React.FC = () => {
 
         const values = form.getFieldsValue();
 
+        if (!values.sourceContent?.trim() && !values.targetContent?.trim()) {
+            message.warning("Please enter content for at least one side before saving.");
+            throw new Error("No content");
+        }
+
+        const docPayload: any = {
+            title:
+                (values.sourceMeta?.title || "Untitled") + "_" +
+                (values.targetMeta?.title || "Untitled"),
+            status: "draft",
+            source_content: values.sourceContent || "",
+            target_content: values.targetContent || "",
+        };
+
+        if (projectId) {
+            docPayload.project_id = projectId;
+        }
+
         const payload = {
-            document: {
-                title:
-                    values.sourceMeta?.title + "_" +
-                    values.targetMeta?.title,
-                status: "draft",
-                source_content: values.sourceContent,
-                target_content: values.targetContent,
-            },
+            document: docPayload,
             sourceMetadata: values.sourceMeta,
             targetMetadata: values.targetMeta,
         };

@@ -14,6 +14,7 @@
 import {AppState, Document, DocumentMetadata, DocumentWithMetadata} from "./types/database";
 import {Line, Link, LLMSettings} from "./types/alignment";
 import {PromptEntity} from "./types/prompt";
+import {Project, ProjectMetadata} from "./types/project";
 
 const { contextBridge, ipcRenderer } = require('electron');
 
@@ -312,6 +313,82 @@ contextBridge.exposeInMainWorld('api', {
         sourceText: string; targetText: string;
         srcLang: string; tgtLang: string;
     }) => ipcRenderer.invoke("word:segmentAndAlign", payload),
+
+    // ================= PROJECTS =================
+    createProject(project: Omit<Project, 'id' | 'created_at' | 'updated_at'>): Promise<number> {
+        return ipcRenderer.invoke('projects:create', project);
+    },
+
+    getProject(id: number): Promise<Project | null> {
+        return ipcRenderer.invoke('projects:get', id);
+    },
+
+    getProjectWithMetadata(id: number): Promise<any | null> {
+        return ipcRenderer.invoke('projects:getWithMetadata', id);
+    },
+
+    getAllProjects(): Promise<Project[]> {
+        return ipcRenderer.invoke('projects:getAll');
+    },
+
+    getAllProjectsWithMetadata(): Promise<any[]> {
+        return ipcRenderer.invoke('projects:getAllWithMetadata');
+    },
+
+    updateProject(id: number, updates: Partial<Project>): Promise<void> {
+        return ipcRenderer.invoke('projects:update', id, updates);
+    },
+
+    deleteProject(id: number): Promise<void> {
+        return ipcRenderer.invoke('projects:delete', id);
+    },
+
+    upsertProjectMetadata(metadata: Omit<ProjectMetadata, 'id' | 'created_at' | 'updated_at'>): Promise<void> {
+        return ipcRenderer.invoke('projects:upsertMetadata', metadata);
+    },
+
+    getProjectMetadata(projectId: number): Promise<ProjectMetadata | null> {
+        return ipcRenderer.invoke('projects:getMetadata', projectId);
+    },
+
+    getInheritedMetadata(projectId: number): Promise<Partial<ProjectMetadata> | null> {
+        return ipcRenderer.invoke('projects:getInheritedMetadata', projectId);
+    },
+
+    getProjectDocuments(projectId: number): Promise<any[]> {
+        return ipcRenderer.invoke('projects:getDocuments', projectId);
+    },
+
+    addDocumentToProject(documentId: number, projectId: number): Promise<void> {
+        return ipcRenderer.invoke('projects:addDocument', documentId, projectId);
+    },
+
+    removeDocumentFromProject(documentId: number): Promise<void> {
+        return ipcRenderer.invoke('projects:removeDocument', documentId);
+    },
+
+    saveProjectWithMetadata(data: {
+        project: Omit<Project, 'id' | 'created_at' | 'updated_at'>;
+        metadata?: Omit<ProjectMetadata, 'id' | 'project_id' | 'created_at' | 'updated_at'>;
+    }): Promise<number> {
+        return ipcRenderer.invoke('projects:saveWithMetadata', data);
+    },
+
+    updateProjectWithMetadata(id: number, data: {
+        project?: Partial<Project>;
+        metadata?: Partial<Omit<ProjectMetadata, 'id' | 'project_id' | 'created_at' | 'updated_at'>>;
+    }): Promise<void> {
+        return ipcRenderer.invoke('projects:updateWithMetadata', id, data);
+    },
+
+    exportProject(projectId: number): Promise<any> {
+        return ipcRenderer.invoke('projects:exportAll', projectId);
+    },
+
+    saveProjectZip: (data: {
+        projectTitle: string;
+        documents: any[];
+    }) => ipcRenderer.invoke('save-project-zip', data),
 
     // ================= FINISHED =================
     onAlignmentFinished: (callback: (data: any) => void) => {

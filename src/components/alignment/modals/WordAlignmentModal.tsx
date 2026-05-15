@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Modal, Button, message, Spin } from "antd";
 import { AlignmentTable } from "../AlignmentTable";
 import type { Line, Link, FontSettings } from "../../../types/alignment";
@@ -50,6 +50,18 @@ const WordAlignmentModal: React.FC<WordAlignmentModalProps> = ({
         id: string;
         text: string;
     } | null>(null);
+    const [processing, setProcessing] = useState(false);
+
+    // Show processing on state changes
+    const lastChangeRef = useRef(0);
+    useEffect(() => {
+        const now = Date.now();
+        if (now - lastChangeRef.current < 100) return; // skip rapid initial changes
+        lastChangeRef.current = now;
+        setProcessing(true);
+        const timer = setTimeout(() => setProcessing(false), 400);
+        return () => clearTimeout(timer);
+    }, [sourceWords, targetWords, wordLinks]);
 
     useEffect(() => {
         if (!visible || !documentId) return;
@@ -348,6 +360,64 @@ const WordAlignmentModal: React.FC<WordAlignmentModalProps> = ({
         setWordLinks(newLinks);
     };
 
+    const handleDeleteLine = (type: "source" | "target", lineId: string) => {
+        const lines = type === "source" ? sourceWords : targetWords;
+        if (lines.length <= 1) {
+            message.warning("Cannot delete the only remaining cell.");
+            return;
+        }
+        const newLinks = wordLinks.filter((link) => {
+            const ids = type === "source" ? link.sourceIds : link.targetIds;
+            return !ids.includes(lineId);
+        });
+        const newLines = lines.filter((l) => l.id !== lineId);
+        const prefix = type === "source" ? "sw" : "tw";
+        const reordered = reorderLines(newLines, prefix);
+        const idMapping = new Map<string, string>();
+        lines.forEach((old) => {
+            if (old.id === lineId) return;
+            const match = reordered.find((l) => l.text === old.text);
+            if (match) idMapping.set(old.id, match.id);
+        });
+        const updatedLinks = newLinks.map((link) => {
+            if (type === "source") {
+                return { ...link, sourceIds: link.sourceIds.map((id) => idMapping.get(id) || id) };
+            } else {
+                return { ...link, targetIds: link.targetIds.map((id) => idMapping.get(id) || id) };
+            }
+        });
+        if (type === "source") setSourceWords(reordered);
+        else setTargetWords(reordered);
+        setWordLinks(updatedLinks);
+        message.success("Cell deleted");
+    };
+
+    const handleInsertLineBelow = (type: "source" | "target", lineId: string) => {
+        const lines = type === "source" ? sourceWords : targetWords;
+        const idx = lines.findIndex((l) => l.id === lineId);
+        if (idx === -1) return;
+        const newLine: Line = { id: `${type[0]}${Date.now()}`, lineNumber: "", text: "", isFavorite: false };
+        const newLines = [...lines.slice(0, idx + 1), newLine, ...lines.slice(idx + 1)];
+        const prefix = type === "source" ? "sw" : "tw";
+        const reordered = reorderLines(newLines, prefix);
+        const idMapping = new Map<string, string>();
+        lines.forEach((old) => {
+            const match = reordered.find((l) => l.text === old.text);
+            if (match) idMapping.set(old.id, match.id);
+        });
+        const updatedLinks = wordLinks.map((link) => {
+            if (type === "source") {
+                return { ...link, sourceIds: link.sourceIds.map((id) => idMapping.get(id) || id) };
+            } else {
+                return { ...link, targetIds: link.targetIds.map((id) => idMapping.get(id) || id) };
+            }
+        });
+        if (type === "source") setSourceWords(reordered);
+        else setTargetWords(reordered);
+        setWordLinks(updatedLinks);
+        message.success("Empty cell inserted below");
+    };
+
     const handleSave = async () => {
         try {
             await window.api.saveWordAlignment(documentId, sourceSentenceKey, targetSentenceKey, {
@@ -434,6 +504,9 @@ const WordAlignmentModal: React.FC<WordAlignmentModalProps> = ({
                         onSplitLine={handleSplitLine}
                         onMoveUp={(type, id) => handleMoveLine(type, id, "up")}
                         onMoveDown={(type, id) => handleMoveLine(type, id, "down")}
+                        onDeleteLine={handleDeleteLine}
+                        onInsertLineBelow={handleInsertLineBelow}
+                        processing={processing}
                         onLinkClick={(linkId) => {
                             const link = wordLinks.find((l) => l.id === linkId);
                             if (link && window.confirm("Delete this link?")) {
