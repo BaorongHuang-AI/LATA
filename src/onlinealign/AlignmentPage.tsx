@@ -187,6 +187,7 @@ const AlignmentPage: React.FC<AlignmentPageProps> = ({ alignmentType }) => {
         undo,
         redo,
         currentState,
+        historyReady,
     } = useAlignmentHistory(documentId, initialState, alignmentType);
 
     // Working state - derived from current history state or initial
@@ -1020,7 +1021,7 @@ const AlignmentPage: React.FC<AlignmentPageProps> = ({ alignmentType }) => {
         });
     }
 
-    if (initialLoading || !initialState) {
+    if (initialLoading || !initialState || !historyReady) {
         return (
             <div className="h-screen flex items-center justify-center bg-gray-50">
                 <div className="text-center space-y-4">

@@ -9,6 +9,7 @@ interface UseAlignmentHistoryReturn {
     undo: () => void;
     redo: () => void;
     currentState: AppState | null;
+    historyReady: boolean;
 }
 export const useAlignmentHistory = (
     documentId: string | undefined,
@@ -56,6 +57,11 @@ export const useAlignmentHistory = (
                 return next >= 50 ? 49 : next;
             });
 
+
+            if (!currentState) {
+                console.warn('saveToHistory called before history was seeded');
+                return;
+            }
 
             const linesChanged =
                 JSON.stringify(newState.sourceLines) !==
@@ -147,6 +153,8 @@ export const useAlignmentHistory = (
     const currentState =
         historyIndex >= 0 ? history[historyIndex] : null;
 
+    const historyReady = historyIndex >= 0;
+
     return {
         history,
         historyIndex,
@@ -154,5 +162,6 @@ export const useAlignmentHistory = (
         undo,
         redo,
         currentState,
+        historyReady,
     };
 };
