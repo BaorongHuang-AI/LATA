@@ -9,6 +9,7 @@ export interface ChatRequest {
     messages: ChatMessage[];
     temperature?: number;
     maxTokens?: number;
+    responseFormat?: 'json_object' | 'text';
 }
 
 export interface ChatResponse {

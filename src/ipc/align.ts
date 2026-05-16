@@ -1494,9 +1494,10 @@ ipcMain.handle("word:checkExists", (_e, documentId: number) => {
 
 ipcMain.handle("word:segmentAndAlign", async (_e, payload: {
     sourceText: string, targetText: string,
-    srcLang: string, tgtLang: string
+    srcLang: string, tgtLang: string,
+    documentId: number, sourceKey: string, targetKey: string
 }) => {
-    const { sourceText, targetText, srcLang, tgtLang } = payload;
+    const { sourceText, targetText, srcLang, tgtLang, documentId, sourceKey, targetKey } = payload;
 
     const promptRow = db.prepare(`
         SELECT * FROM llm_prompts
@@ -1508,6 +1509,7 @@ ipcMain.handle("word:segmentAndAlign", async (_e, payload: {
         throw new Error("No active word_segmentation_alignment prompt found");
     }
 
+
     const systemPrompt = promptRow.system_prompt || "";
     const userPrompt = promptRow.user_prompt
         .replace(/\{\{sourceLanguage\}\}/g, srcLang)
@@ -1515,26 +1517,56 @@ ipcMain.handle("word:segmentAndAlign", async (_e, payload: {
         .replace(/\{\{sourceSentence\}\}/g, sourceText)
         .replace(/\{\{targetSentence\}\}/g, targetText);
 
+    console.log(systemPrompt, userPrompt, "word alignment");
     const response = await sendChatCompletion({
         messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },
         ],
         temperature: promptRow.temperature ?? 0.2,
-        maxTokens: promptRow.max_tokens ?? 2048,
+        maxTokens: promptRow.max_tokens ?? 20000,
+        responseFormat: 'json_object',
     });
-
+    console.log("response",response);
     const content = response?.content;
     if (!content) {
         throw new Error("Empty response from LLM");
     }
 
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-        throw new Error("No JSON found in LLM response");
+    // Try to extract JSON from the response — handles raw JSON, markdown code blocks, etc.
+    let parsed: any;
+    try {
+        parsed = JSON.parse(content);
+    } catch {
+        // Strip markdown code fences if present
+        const cleaned = content
+            .replace(/```(?:json)?\s*([\s\S]*?)```/g, '$1')
+            .trim();
+        try {
+            parsed = JSON.parse(cleaned);
+        } catch {
+            // Fall back to regex extraction
+            const jsonMatch = content.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) {
+                throw new Error("No JSON found in LLM response");
+            }
+            parsed = JSON.parse(jsonMatch[0]);
+        }
     }
 
-    const parsed = JSON.parse(jsonMatch[0]);
+    // Build index maps from LLM word IDs to array positions
+    // The prompt template uses "w0", "w1", ... for both sides
+    const srcIdToIndex = new Map<string, number>();
+    (parsed.sourceWords || []).forEach((w: any, i: number) => {
+        if (w.id) srcIdToIndex.set(w.id, i);
+        else srcIdToIndex.set(`w${i}`, i); // fallback: positional ID
+    });
+
+    const tgtIdToIndex = new Map<string, number>();
+    (parsed.targetWords || []).forEach((w: any, i: number) => {
+        if (w.id) tgtIdToIndex.set(w.id, i);
+        else tgtIdToIndex.set(`w${i}`, i);
+    });
 
     const sourceWords: Line[] = (parsed.sourceWords || []).map((w: any, i: number) => ({
         id: `sw${i}`,
@@ -1548,13 +1580,33 @@ ipcMain.handle("word:segmentAndAlign", async (_e, payload: {
         text: w.text,
     }));
 
+    // Translate LLM alignment IDs → our generated sw{N} / tw{N} IDs
+    const translateSourceId = (llmId: string): string => {
+        const idx = srcIdToIndex.get(llmId);
+        return idx !== undefined ? `sw${idx}` : llmId;
+    };
+    const translateTargetId = (llmId: string): string => {
+        const idx = tgtIdToIndex.get(llmId);
+        return idx !== undefined ? `tw${idx}` : llmId;
+    };
+
     const wordLinks: Link[] = (parsed.alignments || []).map((a: any, i: number) => ({
         id: `wl${Date.now()}${i}`,
-        sourceIds: a.sourceIds,
-        targetIds: a.targetIds,
+        sourceIds: (a.sourceIds || []).map(translateSourceId),
+        targetIds: (a.targetIds || []).map(translateTargetId),
         confidence: a.confidence ?? 0.8,
         strategy: "llm",
     }));
+
+    // Persist results into database
+    if (documentId && sourceKey && targetKey) {
+        const tx = db.transaction(() => {
+            persistWords(documentId, sourceKey, "source", sourceWords);
+            persistWords(documentId, targetKey, "target", targetWords);
+            persistWordAlignments(documentId, sourceKey, targetKey, wordLinks);
+        });
+        tx();
+    }
 
     return { sourceWords, targetWords, wordLinks };
 });

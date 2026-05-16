@@ -312,6 +312,7 @@ contextBridge.exposeInMainWorld('api', {
     segmentAndAlignWords: (payload: {
         sourceText: string; targetText: string;
         srcLang: string; tgtLang: string;
+        documentId: number; sourceKey: string; targetKey: string;
     }) => ipcRenderer.invoke("word:segmentAndAlign", payload),
 
     // ================= PROJECTS =================

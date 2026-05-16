@@ -88,6 +88,9 @@ const WordAlignmentModal: React.FC<WordAlignmentModalProps> = ({
                 targetText,
                 srcLang,
                 tgtLang,
+                documentId,
+                sourceKey: sourceSentenceKey,
+                targetKey: targetSentenceKey,
             });
             setSourceWords(result.sourceWords);
             setTargetWords(result.targetWords);

@@ -374,6 +374,7 @@ declare global {
             segmentAndAlignWords: (payload: {
                 sourceText: string; targetText: string;
                 srcLang: string; tgtLang: string;
+                documentId: number; sourceKey: string; targetKey: string;
             }) => Promise<{
                 sourceWords: import("./types/alignment").Line[];
                 targetWords: import("./types/alignment").Line[];

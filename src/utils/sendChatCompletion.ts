@@ -10,6 +10,7 @@ export async function sendChatCompletion(
         messages,
         temperature = 0.3,
         maxTokens = 20000,
+        responseFormat,
     } = req;
 
     const cred = loadDefaultModel();
@@ -20,12 +21,18 @@ export async function sendChatCompletion(
     });
 
     try {
-        const result = await client.chat.completions.create({
+        const params: any = {
             model: cred.modelName as string,
             messages: messages as any,
             temperature: temperature,
             max_tokens: maxTokens,
-        });
+        };
+
+        if (responseFormat === 'json_object') {
+            params.response_format = { type: 'json_object' as const };
+        }
+
+        const result = await client.chat.completions.create(params);
         console.log(result);
 
         const choice = result.choices[0];
