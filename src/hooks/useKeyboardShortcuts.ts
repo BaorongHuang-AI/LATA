@@ -6,6 +6,8 @@ interface UseKeyboardShortcutsProps {
     redo: () => void;
     cancelClickLinking: () => void;
     clickLinkingStep: 'idle' | 'source-selected' | 'target-selected';
+    realignStep?: 'idle' | 'start-selected' | 'end-selected';
+    cancelRealigning?: () => void;
 }
 
 export const useKeyboardShortcuts = ({
@@ -13,6 +15,8 @@ export const useKeyboardShortcuts = ({
                                          redo,
                                          cancelClickLinking,
                                          clickLinkingStep,
+                                         realignStep,
+                                         cancelRealigning,
                                      }: UseKeyboardShortcutsProps) => {
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -30,11 +34,13 @@ export const useKeyboardShortcuts = ({
             else if (e.key === 'Escape') {
                 if (clickLinkingStep !== 'idle') {
                     cancelClickLinking();
+                } else if (realignStep && realignStep !== 'idle' && cancelRealigning) {
+                    cancelRealigning();
                 }
             }
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [undo, redo, cancelClickLinking, clickLinkingStep]);
+    }, [undo, redo, cancelClickLinking, clickLinkingStep, realignStep, cancelRealigning]);
 };

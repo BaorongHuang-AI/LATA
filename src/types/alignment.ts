@@ -47,7 +47,7 @@ export interface FontSettings {
     fontSize: number;
 }
 
-export type LinkingMode = 'manual' | 'click';
+export type LinkingMode = 'manual' | 'click' | 'realign';
 
 export interface PersistedAppState {
     sourceLines: Line[];

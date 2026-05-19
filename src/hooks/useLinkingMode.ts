@@ -31,6 +31,11 @@ export const useLinkingMode = ({
         comment: '',
     });
 
+    // Realign mode state
+    const [realignStep, setRealignStep] = useState<'idle' | 'start-selected' | 'end-selected'>('idle');
+    const [realignStartSourceId, setRealignStartSourceId] = useState<string | null>(null);
+    const [realignEndSourceId, setRealignEndSourceId] = useState<string | null>(null);
+
     const linkedSourceIds = useMemo(
         () => new Set(links.flatMap(l => l.sourceIds)),
         [links]
@@ -61,7 +66,29 @@ export const useLinkingMode = ({
 
     const handleLineClick = useCallback(
         (type: 'source' | 'target', id: string) => {
-            // console.log("clicked line");
+            if (linkingMode === 'realign') {
+                if (type !== 'source') {
+                    message.warning('In realign mode, please click source lines only.');
+                    return;
+                }
+
+                if (realignStep === 'idle') {
+                    setRealignStartSourceId(id);
+                    setRealignStep('start-selected');
+                    message.info('Start source selected. Now click an end source line that is also aligned.');
+                } else if (realignStep === 'start-selected') {
+                    if (id === realignStartSourceId) {
+                        message.warning('End must be different from start. Click a different source line.');
+                        return;
+                    }
+                    setRealignEndSourceId(id);
+                    setRealignStep('end-selected');
+                    message.info('End source selected. Ready to realign.');
+                }
+                // end-selected: ignore further clicks
+                return;
+            }
+
             if (linkingMode === 'click') {
                 // Click linking logic
                 if (clickLinkingStep === 'idle') {
@@ -143,7 +170,7 @@ export const useLinkingMode = ({
                 }
             }
         },
-        [linkingMode, clickLinkingStep, linkedSourceIds, linkedTargetIds]
+        [linkingMode, clickLinkingStep, realignStep, realignStartSourceId, linkedSourceIds, linkedTargetIds]
     );
 
     function notUndefined<T>(x: T | undefined): x is T {
@@ -199,6 +226,13 @@ export const useLinkingMode = ({
         message.info('Link creation cancelled');
     }, []);
 
+    const cancelRealigning = useCallback(() => {
+        setRealignStartSourceId(null);
+        setRealignEndSourceId(null);
+        setRealignStep('idle');
+        message.info('Realign cancelled');
+    }, []);
+
     return {
         linkingMode,
         clickLinkingStep,
@@ -214,5 +248,12 @@ export const useLinkingMode = ({
         cancelClickLinking,
         setSelectedSourceIds,
         setSelectedTargetIds,
+        realignStep,
+        realignStartSourceId,
+        realignEndSourceId,
+        cancelRealigning,
+        setRealignStep,
+        setRealignStartSourceId,
+        setRealignEndSourceId,
     };
 };

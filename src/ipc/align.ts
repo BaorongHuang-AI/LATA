@@ -7,6 +7,7 @@ import {db} from "../db/db";
 import {Line, Link, LLMSettings} from "../types/alignment";
 import {getLLMSettings, loadDefaultModel, saveLLMSettings} from "../db/llmSettings";
 import {AlignmentPipelineService} from "../renderer/services/AlignmentPipelineService";
+import {SentenceAlignmentService} from "../renderer/services/SentenceAlignmentService";
 import dbService from "../database/database.service";
 import {sendChatCompletion} from "../utils/sendChatCompletion";
 const { contextBridge, ipcRenderer } = require("electron");
@@ -1609,6 +1610,21 @@ ipcMain.handle("word:segmentAndAlign", async (_e, payload: {
     }
 
     return { sourceWords, targetWords, wordLinks };
+});
+
+ipcMain.handle("align:realign", async (_event, payload: {
+    sourceSentences: { id: string; text: string }[];
+    targetSentences: { id: string; text: string }[];
+    srcLang: string;
+    tgtLang: string;
+}) => {
+    const { sourceSentences, targetSentences, srcLang, tgtLang } = payload;
+    return SentenceAlignmentService.monotonicAlignBlock(
+        sourceSentences,
+        targetSentences,
+        srcLang,
+        tgtLang,
+    );
 });
 
 export function markDocumentWithStatus(documentId: number, status: string): boolean {

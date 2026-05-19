@@ -315,6 +315,13 @@ contextBridge.exposeInMainWorld('api', {
         documentId: number; sourceKey: string; targetKey: string;
     }) => ipcRenderer.invoke("word:segmentAndAlign", payload),
 
+    realignBlock: (payload: {
+        sourceSentences: { id: string; text: string }[];
+        targetSentences: { id: string; text: string }[];
+        srcLang: string;
+        tgtLang: string;
+    }) => ipcRenderer.invoke("align:realign", payload),
+
     // ================= PROJECTS =================
     createProject(project: Omit<Project, 'id' | 'created_at' | 'updated_at'>): Promise<number> {
         return ipcRenderer.invoke('projects:create', project);

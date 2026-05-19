@@ -381,6 +381,13 @@ declare global {
                 wordLinks: import("./types/alignment").Link[];
             }>;
 
+            realignBlock: (payload: {
+                sourceSentences: { id: string; text: string }[];
+                targetSentences: { id: string; text: string }[];
+                srcLang: string;
+                tgtLang: string;
+            }) => Promise<import("./types/alignment").Alignment[]>;
+
             onAlignmentFinished: (
                 callback: (data: AlignmentFinishedPayload) => void
             ) => void;

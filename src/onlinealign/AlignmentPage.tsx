@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { message } from 'antd';
+import { message, Modal } from 'antd';
 import {useNavigate, useParams} from 'react-router-dom';
 import { AlignmentHeader } from '../components/alignment/AlignmentHeader';
 import { AlignmentTable } from '../components/alignment/AlignmentTable';
@@ -10,7 +10,7 @@ import { useLinkingMode } from '../hooks/useLinkingMode';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import {downloadCESAlignmentZip} from '../utils/xmlExport';
 import { getLinkType } from '../utils/linkHelpers';
-import type {Line, Link, AppState, AlignmentPair} from '../types/alignment';
+import type {Line, Link, AppState, AlignmentPair, Sentence, Alignment} from '../types/alignment';
 
 /**
  * Removes all links that reference any of the given line IDs
@@ -243,6 +243,13 @@ const AlignmentPage: React.FC<AlignmentPageProps> = ({ alignmentType }) => {
         cancelClickLinking,
         setSelectedSourceIds,
         setSelectedTargetIds,
+        realignStep,
+        realignStartSourceId,
+        realignEndSourceId,
+        cancelRealigning,
+        setRealignStep,
+        setRealignStartSourceId,
+        setRealignEndSourceId,
     } = useLinkingMode({
         sourceLines,
         targetLines,
@@ -298,6 +305,7 @@ const AlignmentPage: React.FC<AlignmentPageProps> = ({ alignmentType }) => {
         quickLink: false,
         linkDetails: false,
         wordAlignment: false,
+        realignConfirm: false,
     });
 
     // Edit state
@@ -336,6 +344,8 @@ const AlignmentPage: React.FC<AlignmentPageProps> = ({ alignmentType }) => {
         redo,
         cancelClickLinking,
         clickLinkingStep,
+        realignStep,
+        cancelRealigning,
     });
 
     // Sync quick link modal with click linking step
@@ -1119,6 +1129,175 @@ const AlignmentPage: React.FC<AlignmentPageProps> = ({ alignmentType }) => {
         navigate("/alignsent/" + documentId)
     };
 
+    const handleInitiateRealign = () => {
+        if (!realignStartSourceId) {
+            message.warning('Select a start source line first.');
+            return;
+        }
+
+        const startLinked = links.some(l => l.sourceIds.includes(realignStartSourceId));
+        if (!startLinked) {
+            message.error('The start source line must be part of an existing link.');
+            return;
+        }
+
+        if (realignEndSourceId) {
+            const endLinked = links.some(l => l.sourceIds.includes(realignEndSourceId));
+            if (!endLinked) {
+                message.warning(
+                    'The end source line is not aligned. Select an aligned end or deselect it.'
+                );
+                return;
+            }
+        }
+
+        setModals(m => ({ ...m, realignConfirm: true }));
+    };
+
+    const handleRealignConfirm = async () => {
+        if (!realignStartSourceId) {
+            message.warning('No start source line selected');
+            return;
+        }
+
+        const startLinks = links.filter(l => l.sourceIds.includes(realignStartSourceId));
+        if (startLinks.length === 0) {
+            message.error('Start source line must be aligned with a target line.');
+            return;
+        }
+
+        let effectiveEndSourceId = realignEndSourceId;
+        if (!effectiveEndSourceId) {
+            effectiveEndSourceId = sourceLines[sourceLines.length - 1]?.id;
+        }
+
+        if (realignEndSourceId) {
+            const endLinks = links.filter(l => l.sourceIds.includes(realignEndSourceId));
+            if (endLinks.length === 0) {
+                message.warning('The end source line is not aligned. Select an aligned end or deselect it.');
+                return;
+            }
+        }
+
+        const startIdx = sourceLines.findIndex(l => l.id === realignStartSourceId);
+        const endIdx = sourceLines.findIndex(l => l.id === effectiveEndSourceId);
+
+        if (startIdx === -1 || endIdx === -1) {
+            message.error('Could not locate selected lines.');
+            return;
+        }
+
+        const sMin = Math.min(startIdx, endIdx);
+        const sMax = Math.max(startIdx, endIdx);
+
+        const linkedTargetIds = new Set<string>();
+        for (const link of links) {
+            const hasSourceInRange = link.sourceIds.some(sid => {
+                const idx = sourceLines.findIndex(l => l.id === sid);
+                return idx >= sMin && idx <= sMax;
+            });
+            if (hasSourceInRange) {
+                link.targetIds.forEach(tid => linkedTargetIds.add(tid));
+            }
+        }
+
+        const targetIndices: number[] = [];
+        targetLines.forEach((tl, idx) => {
+            if (linkedTargetIds.has(tl.id)) {
+                targetIndices.push(idx);
+            }
+        });
+
+        if (targetIndices.length === 0) {
+            message.error('No linked target lines found in the selected range.');
+            return;
+        }
+
+        const tMin = Math.min(...targetIndices);
+        const tMax = Math.max(...targetIndices);
+
+        const sourceSliceLines = sourceLines.slice(sMin, sMax + 1);
+        const targetSliceLines = targetLines.slice(tMin, tMax + 1);
+
+        const sourceSentences: Sentence[] = sourceSliceLines.map(l => ({
+            id: l.id,
+            text: l.text,
+        }));
+        const targetSentences: Sentence[] = targetSliceLines.map(l => ({
+            id: l.id,
+            text: l.text,
+        }));
+
+        setModals(m => ({ ...m, realignConfirm: false }));
+        setProcessing(true);
+        processingRef.current = true;
+
+        let llmAlignments: Alignment[] = [];
+        try {
+            llmAlignments = await window.api.realignBlock({
+                sourceSentences,
+                targetSentences,
+                srcLang: sourceMeta?.language || 'en',
+                tgtLang: targetMeta?.language || 'en',
+            });
+        } catch (err) {
+            console.error('Realign LLM call failed:', err);
+            message.error('Realignment failed. The LLM call encountered an error.');
+            setProcessing(false);
+            return;
+        }
+
+        if (!llmAlignments || llmAlignments.length === 0) {
+            message.warning('LLM returned no alignments. Existing links were preserved.');
+            setProcessing(false);
+            setRealignStartSourceId(null);
+            setRealignEndSourceId(null);
+            setRealignStep('idle');
+            return;
+        }
+
+        const newLinks: Link[] = llmAlignments.map((al, i) => ({
+            id: `l-realign-${Date.now()}-${i}`,
+            sourceIds: al.sourceIds,
+            targetIds: al.targetIds,
+            confidence: al.confidence ?? 0.7,
+            strategy: 'realign-llm',
+            comment: al.explanation || undefined,
+            isFavorite: false,
+            ...(alignmentType === 'sent' ? {
+                source_sentence_keys: al.sourceIds,
+                target_sentence_keys: al.targetIds,
+            } : {}),
+        }));
+
+        const sourceIdsInRange = new Set(
+            sourceLines.slice(sMin, sMax + 1).map(l => l.id)
+        );
+        const targetIdsInRange = new Set(
+            targetLines.slice(tMin, tMax + 1).map(l => l.id)
+        );
+
+        const preservedLinks = links.filter(link => {
+            const touchesSource = link.sourceIds.some(id => sourceIdsInRange.has(id));
+            const touchesTarget = link.targetIds.some(id => targetIdsInRange.has(id));
+            return !touchesSource && !touchesTarget;
+        });
+
+        const mergedLinks = [...preservedLinks, ...newLinks];
+        updateState({ links: mergedLinks });
+
+        setRealignStartSourceId(null);
+        setRealignEndSourceId(null);
+        setRealignStep('idle');
+        setProcessing(false);
+
+        const removedCount = links.length - preservedLinks.length;
+        message.success(
+            `Realignment complete: ${newLinks.length} new link(s) created, ` +
+            `${removedCount} old link(s) replaced.`
+        );
+    };
+
     return (
         <div className="h-screen flex flex-col bg-gray-50">
             <AlignmentHeader
@@ -1146,6 +1325,11 @@ const AlignmentPage: React.FC<AlignmentPageProps> = ({ alignmentType }) => {
                 setFontSettings={setFontSettings}
                 onCreateLink={handleCreateManualLink}
                 onMarkCompleted={handleMarkCompleted}
+                realignStep={realignStep}
+                realignStartSourceId={realignStartSourceId}
+                realignEndSourceId={realignEndSourceId}
+                onCancelRealign={cancelRealigning}
+                onExecuteRealign={handleInitiateRealign}
             />
 
             <AlignmentTable
@@ -1177,6 +1361,8 @@ const AlignmentPage: React.FC<AlignmentPageProps> = ({ alignmentType }) => {
                 onInsertLineBelow={(type, lineId) => insertLineBelow(type, lineId)}
                 processing={processing}
                 sentencesWithWordAlignments={sentencesWithWordAlignments}
+                realignStartSourceId={realignStartSourceId}
+                realignEndSourceId={realignEndSourceId}
                 onLinkClick={(linkId) => {
                     setSelectedLinkForDetails(linkId);
                     const link = links.find(l => l.id === linkId);
@@ -1237,6 +1423,37 @@ const AlignmentPage: React.FC<AlignmentPageProps> = ({ alignmentType }) => {
                     }
                 }}
             />
+
+            <Modal
+                title="Confirm Realignment"
+                open={modals.realignConfirm}
+                onOk={handleRealignConfirm}
+                onCancel={() => setModals(m => ({ ...m, realignConfirm: false }))}
+                okText="Realign"
+                okButtonProps={{ danger: true }}
+                width={550}
+            >
+                <div className="space-y-3">
+                    <p className="text-gray-700">
+                        This will send the following range to the LLM for realignment:
+                    </p>
+                    <div className="bg-gray-50 rounded p-3">
+                        <p className="text-sm">
+                            <strong>Source:</strong> {realignStartSourceId}
+                            {realignEndSourceId ? ` to ${realignEndSourceId}` : ' to end of document'}
+                        </p>
+                        <p className="text-sm mt-1">
+                            <strong>Target:</strong> Lines linked to the selected source range
+                        </p>
+                    </div>
+                    <div className="bg-amber-50 border border-amber-200 rounded p-3">
+                        <p className="text-sm text-amber-800">
+                            <strong>Warning:</strong> All existing links within this range will be
+                            replaced with LLM-generated alignments. This action can be undone with Ctrl+Z.
+                        </p>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 };

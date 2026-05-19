@@ -11,6 +11,7 @@ import {
     X,
     MousePointer2,
     Hand,
+    RefreshCw,
 } from 'lucide-react';
 import { FontSettingsPopover } from './FontSettingsPopover';
 import type { AlignmentMetadata, FontSettings, LinkingMode } from '../../types/alignment';
@@ -41,6 +42,11 @@ interface AlignmentHeaderProps {
     setFontSettings: (settings: FontSettings | ((prev: FontSettings) => FontSettings)) => void;
     onCreateLink: () => void; // ADD THIS
     onMarkCompleted: () => void;
+    realignStep?: 'idle' | 'start-selected' | 'end-selected';
+    realignStartSourceId?: string | null;
+    realignEndSourceId?: string | null;
+    onCancelRealign?: () => void;
+    onExecuteRealign?: () => void;
 }
 
 export const AlignmentHeader: React.FC<AlignmentHeaderProps> = ({
@@ -67,7 +73,12 @@ export const AlignmentHeader: React.FC<AlignmentHeaderProps> = ({
                                                                     fontSettings,
                                                                     setFontSettings,
                                                                     onCreateLink, // ADD THIS
-                                                                    onMarkCompleted
+                                                                    onMarkCompleted,
+                                                                    realignStep,
+                                                                    realignStartSourceId,
+                                                                    realignEndSourceId,
+                                                                    onCancelRealign,
+                                                                    onExecuteRealign,
                                                                 }) => {
     return (
         <>
@@ -93,7 +104,13 @@ export const AlignmentHeader: React.FC<AlignmentHeaderProps> = ({
                                 setLinkingMode(mode);
                                 if (mode === 'manual') {
                                     cancelClickLinking();
-                                } else {
+                                    onCancelRealign?.();
+                                } else if (mode === 'click') {
+                                    setSelectedSourceIds([]);
+                                    setSelectedTargetIds([]);
+                                    onCancelRealign?.();
+                                } else if (mode === 'realign') {
+                                    cancelClickLinking();
                                     setSelectedSourceIds([]);
                                     setSelectedTargetIds([]);
                                 }
@@ -157,6 +174,19 @@ export const AlignmentHeader: React.FC<AlignmentHeaderProps> = ({
                                 Cancel Linking
                             </Button>
                         )}
+
+                        {linkingMode === 'realign' && realignStep && realignStep !== 'idle' && (
+                            <>
+                                <Button danger icon={<X size={16} />} onClick={onCancelRealign}>
+                                    Cancel Realign
+                                </Button>
+                                {realignStep === 'end-selected' && (
+                                    <Button type="primary" onClick={onExecuteRealign}>
+                                        Execute Realign
+                                    </Button>
+                                )}
+                            </>
+                        )}
                     </div>
                 </div>
 
@@ -165,6 +195,14 @@ export const AlignmentHeader: React.FC<AlignmentHeaderProps> = ({
                         step={clickLinkingStep}
                         sourceCount={pendingSourceIds.length}
                         targetCount={pendingTargetIds.length}
+                    />
+                )}
+
+                {linkingMode === 'realign' && realignStep && (
+                    <RealignInstructions
+                        step={realignStep}
+                        startId={realignStartSourceId}
+                        endId={realignEndSourceId}
                     />
                 )}
             </div>
@@ -191,6 +229,10 @@ const LinkingModeSelector: React.FC<{
             <Radio.Button value="manual" className="text-xs py-0">
                 <Hand size={10} className="inline mr-1" />
                 Manual
+            </Radio.Button>
+            <Radio.Button value="realign" className="text-xs py-0">
+                <RefreshCw size={10} className="inline mr-1" />
+                Realign
             </Radio.Button>
         </Radio.Group>
     </div>
@@ -240,6 +282,32 @@ const ClickModeInstructions: React.FC<{
     return (
         <div className="mt-2 px-4 py-2 bg-purple-50 border border-purple-200 rounded-lg">
             <p className="text-sm text-purple-900">
+                {getMessage()}
+                {step !== 'idle' && ' (Press ESC to cancel)'}
+            </p>
+        </div>
+    );
+};
+
+const RealignInstructions: React.FC<{
+    step: 'idle' | 'start-selected' | 'end-selected';
+    startId: string | null;
+    endId: string | null;
+}> = ({ step, startId, endId }) => {
+    const getMessage = () => {
+        switch (step) {
+            case 'idle':
+                return 'Click an aligned source line to set the START of the realignment range.';
+            case 'start-selected':
+                return `Start: ${startId}. Now click an aligned source line AFTER the start to set the END (or skip to realign to the end).`;
+            case 'end-selected':
+                return `Start: ${startId} | End: ${endId}. Ready to realign. Click "Execute Realign" to proceed.`;
+        }
+    };
+
+    return (
+        <div className="mt-2 px-4 py-2 bg-orange-50 border border-orange-200 rounded-lg">
+            <p className="text-sm text-orange-900">
                 {getMessage()}
                 {step !== 'idle' && ' (Press ESC to cancel)'}
             </p>

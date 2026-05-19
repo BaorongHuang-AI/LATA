@@ -1782,9 +1782,10 @@ Target sentences:
 ${targetSlice.map(t => `${t.id}: ${t.text}`).join("\n")}
 `;
 
+        console.log("aligned prompt mono tonic", system, user);
         let response;
         try {
-            const response = await llmCallWithRetry(async () => {
+             response = await llmCallWithRetry(async () => {
                 const r = await sendChatCompletion({
                     messages: [
                         { role: "system", content: system },
@@ -1802,7 +1803,7 @@ ${targetSlice.map(t => `${t.id}: ${t.text}`).join("\n")}
         let parsed;
 
         try {
-            parsed = JSON.parse(response);
+            parsed = response;
         } catch (e) {
             console.warn("JSON parse failed, raw response:", response);
             return [];
@@ -1812,10 +1813,14 @@ ${targetSlice.map(t => `${t.id}: ${t.text}`).join("\n")}
             return [];
         }
 
+        console.log("aligned results mono tonic", response);
+
         // =========================
         // 🔒 Post-validation (VERY IMPORTANT)
         // =========================
-        return this.validateMonotonicOutput(parsed.alignments, sourceSlice, targetSlice);
+        const finalResults =  this.validateMonotonicOutput(parsed.alignments, sourceSlice, targetSlice);
+        console.log("final results after validation", finalResults);
+        return finalResults;
     }
 
 

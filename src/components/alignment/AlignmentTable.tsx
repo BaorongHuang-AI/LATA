@@ -37,6 +37,8 @@ interface AlignmentTableProps {
     onLinkClick: (linkId: string) => void;
     sentencesWithWordAlignments?: Set<string>;
     processing?: boolean;
+    realignStartSourceId?: string | null;
+    realignEndSourceId?: string | null;
 }
 
 const DEFAULT_ROW_HEIGHT = 120;
@@ -72,6 +74,8 @@ export const AlignmentTable: React.FC<AlignmentTableProps> = ({
     onLinkClick,
     sentencesWithWordAlignments,
     processing,
+    realignStartSourceId,
+    realignEndSourceId,
 }) => {
     const rows = useMemo(
         () => buildAlignmentRows(sourceLines, targetLines, links),
@@ -81,8 +85,32 @@ export const AlignmentTable: React.FC<AlignmentTableProps> = ({
     const sourceRTL = !!sourceMeta?.language && RTL_LANGS.indexOf(sourceMeta.language) !== -1;
     const targetRTL = !!targetMeta?.language && RTL_LANGS.indexOf(targetMeta.language) !== -1;
 
-    const activeSourceIds = linkingMode === 'manual' ? selectedSourceIds : pendingSourceIds;
-    const activeTargetIds = linkingMode === 'manual' ? selectedTargetIds : pendingTargetIds;
+    const activeSourceIds = useMemo(() => {
+        if (linkingMode === 'realign') {
+            const ids: string[] = [];
+            if (realignStartSourceId) ids.push(realignStartSourceId);
+            if (realignEndSourceId) ids.push(realignEndSourceId);
+            return ids;
+        }
+        return linkingMode === 'manual' ? selectedSourceIds : pendingSourceIds;
+    }, [linkingMode, selectedSourceIds, pendingSourceIds, realignStartSourceId, realignEndSourceId]);
+
+    const activeTargetIds = useMemo(() => {
+        if (linkingMode === 'realign') return [];
+        return linkingMode === 'manual' ? selectedTargetIds : pendingTargetIds;
+    }, [linkingMode, selectedTargetIds, pendingTargetIds]);
+
+    const realignRangeSourceIds = useMemo(() => {
+        if (linkingMode !== 'realign' || !realignStartSourceId) return new Set<string>();
+        const startIdx = sourceLines.findIndex(l => l.id === realignStartSourceId);
+        const endIdx = realignEndSourceId
+            ? sourceLines.findIndex(l => l.id === realignEndSourceId)
+            : sourceLines.length - 1;
+        if (startIdx === -1) return new Set<string>();
+        const lo = Math.min(startIdx, endIdx);
+        const hi = Math.max(startIdx, endIdx);
+        return new Set(sourceLines.slice(lo, hi + 1).map(l => l.id));
+    }, [linkingMode, realignStartSourceId, realignEndSourceId, sourceLines]);
 
     const showSourceMerge =
         linkingMode === 'manual' && activeSourceIds.length >= 2 && (alignmentType === 'para' || alignmentType === 'sent' || alignmentType === 'word');
@@ -278,6 +306,7 @@ export const AlignmentTable: React.FC<AlignmentTableProps> = ({
                             sentencesWithWordAlignments={sentencesWithWordAlignments}
                             editingLine={editingLine}
                             onHeight={onRowHeight}
+                            realignRangeSourceIds={realignRangeSourceIds}
                         />
                     ))}
                 </div>
@@ -323,6 +352,7 @@ interface MemoAlignmentRowProps {
     onLinkClick: (linkId: string) => void;
     sentencesWithWordAlignments?: Set<string>;
     onHeight: (rowId: string, height: number) => void;
+    realignRangeSourceIds?: Set<string>;
 }
 
 const rowSourceIds = (row: AlignmentRowData) => row.sourceItems.map(i => i.line.id).join(',');
@@ -358,6 +388,10 @@ const areRowPropsEqual = (prev: MemoAlignmentRowProps, next: MemoAlignmentRowPro
     if (prev.fontSettings.fontSize !== next.fontSettings.fontSize) return false;
     if (prev.fontSettings.sourceFontFamily !== next.fontSettings.sourceFontFamily) return false;
     if (prev.fontSettings.targetFontFamily !== next.fontSettings.targetFontFamily) return false;
+    // Check realign range
+    const prevRealignRange = prev.realignRangeSourceIds ?? new Set<string>();
+    const nextRealignRange = next.realignRangeSourceIds ?? new Set<string>();
+    if (prevRealignRange !== nextRealignRange) return false;
     return true;
 };
 
@@ -389,6 +423,7 @@ const AlignmentRowComponent: React.FC<MemoAlignmentRowProps> = ({
     onLinkClick,
     sentencesWithWordAlignments,
     onHeight,
+    realignRangeSourceIds,
 }) => {
     const hasLink = !!row.link;
     const isUnlinkedSource = row.sourceItems.length > 0 && row.targetItems.length === 0;
@@ -449,6 +484,7 @@ const AlignmentRowComponent: React.FC<MemoAlignmentRowProps> = ({
                                 onMoveDown={onMoveDown}
                                 onDeleteLine={onDeleteLine}
                                 onInsertLineBelow={onInsertLineBelow}
+                                realignRangeSourceIds={realignRangeSourceIds}
                             />
                         ))}
                     </div>
@@ -556,6 +592,7 @@ interface CellLineItemProps {
     onMoveDown: (type: 'source' | 'target', lineId: string) => void;
     onDeleteLine: (type: 'source' | 'target', lineId: string) => void;
     onInsertLineBelow: (type: 'source' | 'target', lineId: string) => void;
+    realignRangeSourceIds?: Set<string>;
 }
 
 const areCellPropsEqual = (prev: CellLineItemProps, next: CellLineItemProps) => {
@@ -578,6 +615,9 @@ const areCellPropsEqual = (prev: CellLineItemProps, next: CellLineItemProps) => 
     if (prevEditing && nextEditing && prev.editingLine?.text !== next.editingLine?.text) return false;
     if (prev.fontSettings.fontSize !== next.fontSettings.fontSize) return false;
     if (prev.totalLines !== next.totalLines) return false;
+    const prevInRange = prev.realignRangeSourceIds?.has(prev.item.line.id) ?? false;
+    const nextInRange = next.realignRangeSourceIds?.has(next.item.line.id) ?? false;
+    if (prevInRange !== nextInRange) return false;
     return true;
 };
 
@@ -603,10 +643,13 @@ const CellLineItem: React.FC<CellLineItemProps> = ({
     onMoveDown,
     onDeleteLine,
     onInsertLineBelow,
+    realignRangeSourceIds,
 }) => {
     const { line, globalIndex } = item;
     const fontFamily = type === 'source' ? fontSettings.sourceFontFamily : fontSettings.targetFontFamily;
     const isEditing = editingLine?.type === type && editingLine?.id === line.id;
+    const isSelected = activeIds.includes(line.id);
+    const isHighlighted = type === 'source' && !isSelected && (realignRangeSourceIds?.has(line.id) ?? false);
 
     return (
         <MemoLineItem
@@ -614,13 +657,13 @@ const CellLineItem: React.FC<CellLineItemProps> = ({
             line={line}
             index={globalIndex}
             type={type}
-            isSelected={activeIds.includes(line.id)}
+            isSelected={isSelected}
             linkedTo={links.filter((lnk) =>
                 type === 'source'
                     ? lnk.sourceIds.includes(line.id)
                     : lnk.targetIds.includes(line.id)
             )}
-            isHighlighted={false}
+            isHighlighted={isHighlighted}
             isEditing={isEditing}
             editingText={editingLine?.text || ''}
             linkingMode="manual"
@@ -660,6 +703,7 @@ const MemoCellLineItem = React.memo(CellLineItem, areCellPropsEqual);
 const areLineItemEqual = (prev: any, next: any) => {
     if (prev.line !== next.line) return false;
     if (prev.isSelected !== next.isSelected) return false;
+    if (prev.isHighlighted !== next.isHighlighted) return false;
     if (prev.isEditing !== next.isEditing) return false;
     if (prev.editingText !== next.editingText) return false;
     if (prev.index !== next.index) return false;
