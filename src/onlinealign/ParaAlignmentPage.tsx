@@ -1007,6 +1007,12 @@ const ParaAlignmentPage: React.FC = () => {
 
 
     const runBatchAlignment = async () => {
+        const models = await window.api.getLLMModels();
+        if (!models || models.length === 0) {
+            message.warning('No LLM model configured. Please go to Settings > LLMs to configure a model before running alignment.');
+            return;
+        }
+
         const pairs = buildAlignmentPairs(
             sourceLines,
             targetLines,

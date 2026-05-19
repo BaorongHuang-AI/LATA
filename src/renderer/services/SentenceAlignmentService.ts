@@ -1791,25 +1791,30 @@ ${targetSlice.map(t => `${t.id}: ${t.text}`).join("\n")}
                         { role: "system", content: system },
                         { role: "user", content: user }
                     ],
-                    temperature: 0
+                    temperature: 0,
+                    responseFormat: 'json_object',
                 });
-                return r.content;
+                // llmCallWithRetry does JSON.parse, but some models still wrap in markdown.
+                // Return the raw content wrapped so JSON.parse works; if it fails,
+                // strip markdown fences and try again so llmCallWithRetry can succeed.
+                const raw = r.content;
+                try {
+                    JSON.parse(raw);
+                    return raw;
+                } catch {
+                    const cleaned = raw
+                        .replace(/```(?:json)?\s*([\s\S]*?)```/g, '$1')
+                        .trim();
+                    return cleaned;
+                }
             });
         } catch (err) {
             console.warn("LLM call failed", err);
             return [];
         }
 
-        let parsed;
-
-        try {
-            parsed = response;
-        } catch (e) {
-            console.warn("JSON parse failed, raw response:", response);
-            return [];
-        }
-
-        if (!parsed.alignments || !Array.isArray(parsed.alignments)) {
+        if (!response || !response.alignments || !Array.isArray(response.alignments)) {
+            console.warn("monotonicAlignBlock: invalid or null response from LLM", response);
             return [];
         }
 
@@ -1818,7 +1823,7 @@ ${targetSlice.map(t => `${t.id}: ${t.text}`).join("\n")}
         // =========================
         // 🔒 Post-validation (VERY IMPORTANT)
         // =========================
-        const finalResults =  this.validateMonotonicOutput(parsed.alignments, sourceSlice, targetSlice);
+        const finalResults =  this.validateMonotonicOutput(response.alignments, sourceSlice, targetSlice);
         console.log("final results after validation", finalResults);
         return finalResults;
     }

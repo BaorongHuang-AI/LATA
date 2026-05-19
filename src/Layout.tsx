@@ -12,6 +12,7 @@ import AlignmentManagerPage from "./onlinealign/AlignmentManagerPage";
 import DocAlignmentPage from "./onlinealign/DocAlignmentPage";
 import {ParaAlignmentPage, SentAlignmentPage} from "./onlinealign/CombinesAlignmentPage";
 import PromptManager from "./settings/PromptManager";
+import PromptTuner from "./settings/PromptTuner";
 import TagManager from "./settings/TagManager";
 import DocumentViewer from "./viewer/DocumentViewer";
 import DocumentViewerWrapper from "./viewer/DocumentViewerWrapper";
@@ -47,6 +48,7 @@ const Layout = () => {
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/forgetPassword" element={<ForgotPassword />} />
                     <Route path="/promptmanager" element={<PromptManager />} />
+                    <Route path="/prompttuner" element={<PromptTuner />} />
                     <Route path="/tagManager" element={<TagManager />} />
                     <Route path="/register" element={<RegisterPage />} />
                     <Route path="/dashboard" element={<HomePage />} />

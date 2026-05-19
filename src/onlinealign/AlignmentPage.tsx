@@ -1107,6 +1107,12 @@ const AlignmentPage: React.FC<AlignmentPageProps> = ({ alignmentType }) => {
 
 
     const runBatchAlignment = async () => {
+        const models = await window.api.getLLMModels();
+        if (!models || models.length === 0) {
+            message.warning('No LLM model configured. Please go to Settings > LLMs to configure a model before running alignment.');
+            return;
+        }
+
         const pairs = buildAlignmentPairs(
             sourceLines,
             targetLines,
@@ -1157,6 +1163,12 @@ const AlignmentPage: React.FC<AlignmentPageProps> = ({ alignmentType }) => {
     const handleRealignConfirm = async () => {
         if (!realignStartSourceId) {
             message.warning('No start source line selected');
+            return;
+        }
+
+        const models = await window.api.getLLMModels();
+        if (!models || models.length === 0) {
+            message.warning('No LLM model configured. Please go to Settings > LLMs to configure a model before realigning.');
             return;
         }
 

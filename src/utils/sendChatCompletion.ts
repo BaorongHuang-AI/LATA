@@ -14,7 +14,7 @@ export async function sendChatCompletion(
     } = req;
 
     const cred = loadDefaultModel();
-    console.log(cred);
+    console.log("llm config", cred);
     const client = new OpenAI({
         apiKey: cred.apiKey,
         baseURL: cred.baseUrl,
@@ -33,7 +33,7 @@ export async function sendChatCompletion(
         }
 
         const result = await client.chat.completions.create(params);
-        console.log(result);
+        console.log("LLM result", result);
 
         const choice = result.choices[0];
 

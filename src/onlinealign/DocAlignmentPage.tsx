@@ -283,6 +283,12 @@ const DocAlignmentPage: React.FC = () => {
     const handleAlign = async () => {
         // if (!documentId) return;
 
+        const models = await window.api.getLLMModels();
+        if (!models || models.length === 0) {
+            message.warning('No LLM model configured. Please go to Settings > LLMs to configure a model before running alignment.');
+            return;
+        }
+
         setAlignLoading(true);
 
         try {

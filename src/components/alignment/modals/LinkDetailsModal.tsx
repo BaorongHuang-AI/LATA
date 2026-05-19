@@ -295,6 +295,11 @@ export const LinkDetailsModal: React.FC<LinkDetailsModalProps> = ({
                                         onClose();
                                         onOpenWordAlignment();
                                     }}
+                                    style={{
+                                        backgroundColor: '#1677ff',
+                                        borderColor: '#1677ff',
+                                        color: '#fff',
+                                    }}
                                 >
                                     Word Alignment
                                 </Button>

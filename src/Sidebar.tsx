@@ -14,6 +14,7 @@ export const Sidebar = ({ collapsed, setCollapsed }: { collapsed: boolean, setCo
         // { name: "Courses", path: "/admin/courses", icon: "📚" },
         // { name: "New Course", path: "/admin/newcourse", icon: "➕" },
         { name: "Prompts", path: "/promptmanager", icon: "💬️" },
+        { name: "Prompt Tuner", path: "/prompttuner", icon: "🧪" },
         { name: "Techniques", path: "/tagmanager", icon: "🏷️" },
         { name: "LLMs", path: "/settings", icon: "⚙️" },
     ];

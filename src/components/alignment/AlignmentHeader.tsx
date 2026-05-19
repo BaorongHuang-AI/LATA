@@ -181,7 +181,15 @@ export const AlignmentHeader: React.FC<AlignmentHeaderProps> = ({
                                     Cancel Realign
                                 </Button>
                                 {realignStep === 'end-selected' && (
-                                    <Button type="primary" onClick={onExecuteRealign}>
+                                    <Button
+                                        type="primary"
+                                        onClick={onExecuteRealign}
+                                        style={{
+                                            backgroundColor: '#1677ff',
+                                            borderColor: '#1677ff',
+                                            color: '#fff',
+                                        }}
+                                    >
                                         Execute Realign
                                     </Button>
                                 )}
