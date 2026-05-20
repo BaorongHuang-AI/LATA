@@ -53,6 +53,7 @@ const createWindow = (): void => {
   // Open the DevTools.
   // mainWindow.webContents.openDevTools();
 };
+app.commandLine.appendSwitch('proxy-server', 'http://localhost:4780');
 
 
 
@@ -182,6 +183,8 @@ ipcMain.on('download-file', async (event, fileInfo) => {
   }
 });
 
+
+ipcMain.handle('app:getVersion', () => app.getVersion());
 
 /* ---------- Session ---------- */
 

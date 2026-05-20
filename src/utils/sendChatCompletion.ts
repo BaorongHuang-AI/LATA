@@ -3,6 +3,7 @@ import {loadCredential, loadDefaultModel} from "../db/llmSettings";
 import {ChatRequest, ChatResponse} from "../types/llminterfaces";
 
 
+
 export async function sendChatCompletion(
     req: ChatRequest
 ): Promise<ChatResponse> {
@@ -15,10 +16,20 @@ export async function sendChatCompletion(
 
     const cred = loadDefaultModel();
     console.log("llm config", cred);
-    const client = new OpenAI({
-        apiKey: cred.apiKey,
-        baseURL: cred.baseUrl,
-    });
+
+    let client = new OpenAI({
+            apiKey: cred.apiKey,
+            baseURL: cred.baseUrl,
+        }
+    )
+
+
+    if(false) {
+        client = new OpenAI({
+            apiKey: cred.apiKey,
+            baseURL: cred.baseUrl,
+        });
+    }
 
     try {
         const params: any = {

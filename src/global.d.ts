@@ -324,6 +324,8 @@ declare global {
      ====================== */
             getLLMModels(): Promise<LLMRow[]>;
 
+            getAppVersion(): Promise<string>;
+
             saveLLMModel(payload: {
                 id: string;
                 model_name: string;

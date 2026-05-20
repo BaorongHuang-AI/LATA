@@ -269,6 +269,11 @@ contextBridge.exposeInMainWorld('api', {
         ipcRenderer.invoke("llm:test-model", payload),
 
     /* =====================
+       APP
+    ====================== */
+    getAppVersion: () => ipcRenderer.invoke("app:getVersion"),
+
+    /* =====================
        ENCRYPT
     ====================== */
     encryptApiKey: (apiKey: string) =>

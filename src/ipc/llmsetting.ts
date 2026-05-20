@@ -87,10 +87,24 @@ ipcMain.handle("llm:encrypt-key", async (_, apiKey: string) => {
 ===================== */
 ipcMain.handle("llm:test-model", async (_, payload) => {
     const { base_url, api_key, model_name } = payload;
-    const client = new OpenAI({
-        apiKey:api_key,
-        baseURL: base_url,
-    });
+    // const client = new OpenAI({
+    //     apiKey:api_key,
+    //     baseURL: base_url,
+    // });
+    let client = new OpenAI({
+            apiKey: api_key,
+            baseURL: base_url,
+        }
+    )
+
+
+    if(false) {
+
+        client = new OpenAI({
+            apiKey: api_key,
+            baseURL: base_url,
+        });
+    }
     if (!base_url || !api_key || !model_name) {
         throw new Error("Missing base_url, api_key, or model_name");
     }

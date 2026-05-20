@@ -58,6 +58,7 @@
     "dotenv": "^17.4.2",
     "electron-squirrel-startup": "^1.0.0",
     "electron-store": "^11.0.2",
+    "https-proxy-agent": "^9.0.0",
     "jsonwebtoken": "^9.0.3",
     "jszip": "^3.10.1",
     "lexical": "^0.31.0",

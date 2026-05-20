@@ -1,9 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 
 export const Sidebar = ({ collapsed, setCollapsed }: { collapsed: boolean, setCollapsed: (val: boolean) => void }) => {
 
     const navigate = useNavigate();
+    const [version, setVersion] = useState("");
+
+    useEffect(() => {
+        window.api.getAppVersion().then(setVersion).catch(() => {});
+    }, []);
 
     const menuItems = [
         { name: "Dashboard", path: "/dashboard", icon: "🏠" },
@@ -63,6 +68,11 @@ export const Sidebar = ({ collapsed, setCollapsed }: { collapsed: boolean, setCo
                 {!collapsed && (
                     <p className="text-sm text-gray-500 mb-2">
                         © 2025 LATA — B.H & A.A
+                        {version && (
+                            <span className="ml-2 text-xs text-gray-400">
+                                v{version}
+                            </span>
+                        )}
                     </p>
                 )}
                 <button
