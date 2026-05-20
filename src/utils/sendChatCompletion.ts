@@ -25,7 +25,7 @@ export async function sendChatCompletion(
             model: cred.modelName as string,
             messages: messages as any,
             temperature: temperature,
-            max_tokens: maxTokens,
+            max_completion_tokens: maxTokens,
         };
 
         if (responseFormat === 'json_object') {

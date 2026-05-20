@@ -1525,7 +1525,7 @@ ipcMain.handle("word:segmentAndAlign", async (_e, payload: {
             { role: "user", content: userPrompt },
         ],
         temperature: promptRow.temperature ?? 0.2,
-        maxTokens: promptRow.max_tokens ?? 20000,
+        // maxTokens: promptRow.max_tokens ?? 20000,
         responseFormat: 'json_object',
     });
     console.log("response",response);

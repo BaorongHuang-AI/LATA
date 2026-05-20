@@ -101,7 +101,7 @@ ipcMain.handle("llm:test-model", async (_, payload) => {
             messages: [
                 { role: "user", content: "ping" }
             ],
-            max_tokens: 1,
+            max_completion_tokens: 100,
         });
         return;
     } catch (innerErr: any) {
