@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import {loadCredential, loadDefaultModel} from "../db/llmSettings";
 import {ChatRequest, ChatResponse} from "../types/llminterfaces";
+import { logLLMCall, logLLMResponse, logLLMError } from "./llmLogger";
 
 
 
@@ -35,13 +36,19 @@ export async function sendChatCompletion(
         const params: any = {
             model: cred.modelName as string,
             messages: messages as any,
-            temperature: temperature,
             max_completion_tokens: maxTokens,
         };
 
         if (responseFormat === 'json_object') {
             params.response_format = { type: 'json_object' as const };
         }
+
+        logLLMCall({
+            model: cred.modelName as string,
+            messages: messages as any[],
+            maxTokens,
+            responseFormat,
+        });
 
         const result = await client.chat.completions.create(params);
         console.log("LLM result", result);
@@ -51,6 +58,16 @@ export async function sendChatCompletion(
         if (!choice?.message?.content) {
             throw new Error("Empty response from model");
         }
+
+        logLLMResponse({
+            content: choice.message.content,
+            model: result.model,
+            usage: {
+                promptTokens: result.usage?.prompt_tokens,
+                completionTokens: result.usage?.completion_tokens,
+                totalTokens: result.usage?.total_tokens,
+            },
+        });
 
         return {
             content: choice.message.content,
@@ -62,6 +79,7 @@ export async function sendChatCompletion(
             },
         };
     } catch (err: any) {
+        logLLMError(err, `model=${cred?.modelName}, baseURL=${cred?.baseUrl}`);
         throw new Error(normalizeChatError(err));
     }
 }

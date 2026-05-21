@@ -393,9 +393,11 @@ export async function llmCallWithRetry<T>(
             if (parsed && Object.keys(parsed).length > 0) {
                 return parsed as T;
             }
-        } catch {
-            /* retry */
+            console.warn(`llmCallWithRetry: empty JSON object on attempt ${i + 1}/${maxRetries + 1}`);
+        } catch (e) {
+            console.warn(`llmCallWithRetry: JSON parse failed on attempt ${i + 1}/${maxRetries + 1}`, e);
         }
     }
+    console.error(`llmCallWithRetry: all ${maxRetries + 1} attempts failed, returning null`);
     return null;
 }

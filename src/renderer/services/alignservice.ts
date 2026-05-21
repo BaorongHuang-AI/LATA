@@ -507,7 +507,7 @@ export class AlignmentService {
                 sourceParaIds: sIds,
                 targetParaIds: tIds,
                 confidence: calibrate(cost),
-                strategy: `Gale–Church ${a.type}`,
+                strategy: `align-gale-church`,
                 status: "pending",
             });
 
@@ -737,7 +737,7 @@ export class AlignmentService {
 
         // Perform alignment (extract just text for alignment algorithms)
         let alignments: Alignment[];
-        let strategy: 'llm' | 'gale-church';
+        let strategy: 'align-llm' | 'align-gale-church';
 
         const llmAlignments = await this.llmAlignSentences(
             sourceSentences,
@@ -748,13 +748,13 @@ export class AlignmentService {
 
         if (llmAlignments && llmAlignments.length > 0) {
             alignments = llmAlignments;
-            strategy = 'llm';
+            strategy = 'align-llm';
         } else {
             alignments = this.galeChurchAlign(
                 sourceSentences,
                 targetSentences
             );
-            strategy = 'gale-church';
+            strategy = 'align-gale-church';
         }
 
         console.log("alignments results", alignments);
@@ -1066,7 +1066,7 @@ export class AlignmentService {
          source_sentence_keys, target_sentence_keys, confidence, explanation, strategy)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
-        strategy = `sentence-${strategy}`
+        strategy = `${strategy}`
 
         const saveAll = db.transaction(() => {
             alignments.forEach((alignment) => {

@@ -10,7 +10,7 @@ export class GaleChurchService {
                 sourceIds: [source[i].id],
                 targetIds: [target[j].id],
                 confidence: 0.6,
-                strategy: "gale-church"
+                strategy: "align-gale-church"
             });
 
             i++;
