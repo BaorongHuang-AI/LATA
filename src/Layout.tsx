@@ -14,6 +14,7 @@ import {ParaAlignmentPage, SentAlignmentPage} from "./onlinealign/CombinesAlignm
 import PromptManager from "./settings/PromptManager";
 import PromptTuner from "./settings/PromptTuner";
 import TagManager from "./settings/TagManager";
+import MultimodalPage from "./multimodal/MultimodalPage";
 import DocumentViewer from "./viewer/DocumentViewer";
 import DocumentViewerWrapper from "./viewer/DocumentViewerWrapper";
 import ProjectsPage from "./projects/ProjectsPage";
@@ -59,6 +60,7 @@ const Layout = () => {
                     <Route path="/alignpara/:documentId" element={<ParaAlignmentPage />} />
                     <Route path="/alignsent/:documentId" element={<SentAlignmentPage />} />
                     <Route path="/projects" element={<ProjectsPage />} />
+                    <Route path="/multimodal" element={<MultimodalPage />} />
                 </Routes>
             </div>
         </div>

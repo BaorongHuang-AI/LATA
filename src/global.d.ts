@@ -412,6 +412,23 @@ declare global {
             updateProjectWithMetadata(id: number, data: any): Promise<void>;
             exportProject(projectId: number): Promise<any>;
             saveProjectZip(data: any): Promise<any>;
+
+            // ==================== Multimodal LLM Settings ====================
+            getMultimodalLLMModels(): Promise<import("./types/multimodal").MultimodalLLMRow[]>;
+            saveMultimodalLLMModel(payload: { id: string; model_name: string; base_url: string; api_key: string }): Promise<void>;
+            createMultimodalLLMModel(payload: { model_name: string; base_url: string; api_key: string }): Promise<void>;
+            setDefaultMultimodalLLMModel(id: string): Promise<void>;
+            testMultimodalLLMModel(payload: { base_url: string; api_key: string; model_name: string }): Promise<void>;
+
+            // ==================== Multimodal Pairs ====================
+            listMultimodalPairs(): Promise<import("./types/multimodal").MultimodalPair[]>;
+            getMultimodalPair(id: number): Promise<import("./types/multimodal").MultimodalPair | null>;
+            createMultimodalPair(data: any): Promise<number>;
+            updateMultimodalPair(id: number, data: any): Promise<void>;
+            deleteMultimodalPair(id: number): Promise<void>;
+            pickImageFile(): Promise<{ filePath: string; fileName: string } | null>;
+            getMultimodalAnalyses(pairId: number): Promise<import("./types/multimodal").MultimodalAnalysis[]>;
+            analyzeMultimodalPair(payload: { pairId: number; analysisType: string; customPrompt?: string }): Promise<import("./types/multimodal").MultimodalAnalysis>;
         };
     }
 }

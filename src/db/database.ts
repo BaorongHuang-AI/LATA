@@ -1705,6 +1705,58 @@ Arabic Text: البيت كبير',
     '2026-01-31 10:30:10'
 );
 
+-- =====================
+-- Multimodal LLM Settings
+-- =====================
+CREATE TABLE IF NOT EXISTS multimodal_llm_settings (
+  id INTEGER PRIMARY KEY,
+  model_name TEXT NOT NULL,
+  base_url TEXT NOT NULL,
+  api_key TEXT NOT NULL,
+  is_default INTEGER NOT NULL DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =====================
+-- Multimodal Pairs
+-- =====================
+CREATE TABLE IF NOT EXISTS multimodal_pairs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  description TEXT,
+  source_image_path TEXT NOT NULL,
+  source_image_name TEXT,
+  source_language TEXT,
+  source_description TEXT,
+  source_text_content TEXT,
+  target_image_path TEXT NOT NULL,
+  target_image_name TEXT,
+  target_language TEXT,
+  target_description TEXT,
+  target_text_content TEXT,
+  domain TEXT,
+  context_notes TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =====================
+-- Multimodal Analyses
+-- =====================
+CREATE TABLE IF NOT EXISTS multimodal_analyses (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  pair_id INTEGER NOT NULL,
+  analysis_type TEXT NOT NULL CHECK(analysis_type IN (
+    'description', 'text_extraction', 'comparison', 'discourse_analysis', 'custom'
+  )),
+  model_name TEXT,
+  prompt TEXT,
+  result TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (pair_id) REFERENCES multimodal_pairs(id) ON DELETE CASCADE
+);
+
 INSERT OR IGNORE INTO "translation_tags"
 ("id", "name", "description", "sample", "color", "created_at", "updated_at")
 VALUES

@@ -403,6 +403,51 @@ contextBridge.exposeInMainWorld('api', {
         documents: any[];
     }) => ipcRenderer.invoke('save-project-zip', data),
 
+    // ================= MULTIMODAL LLM SETTINGS =================
+    getMultimodalLLMModels: () =>
+        ipcRenderer.invoke("multimodalllm:get-models"),
+
+    saveMultimodalLLMModel: (payload: {
+        id: string; model_name: string; base_url: string; api_key: string;
+    }) => ipcRenderer.invoke("multimodalllm:save-model", payload),
+
+    createMultimodalLLMModel: (payload: {
+        model_name: string; base_url: string; api_key: string;
+    }) => ipcRenderer.invoke("multimodalllm:create-model", payload),
+
+    setDefaultMultimodalLLMModel: (id: string) =>
+        ipcRenderer.invoke("multimodalllm:set-default", id),
+
+    testMultimodalLLMModel: (payload: {
+        base_url: string; api_key: string; model_name: string;
+    }) => ipcRenderer.invoke("multimodalllm:test-model", payload),
+
+    // ================= MULTIMODAL PAIRS =================
+    listMultimodalPairs: () =>
+        ipcRenderer.invoke("multimodal:listPairs"),
+
+    getMultimodalPair: (id: number) =>
+        ipcRenderer.invoke("multimodal:getPair", id),
+
+    createMultimodalPair: (data: any) =>
+        ipcRenderer.invoke("multimodal:createPair", data),
+
+    updateMultimodalPair: (id: number, data: any) =>
+        ipcRenderer.invoke("multimodal:updatePair", id, data),
+
+    deleteMultimodalPair: (id: number) =>
+        ipcRenderer.invoke("multimodal:deletePair", id),
+
+    pickImageFile: () =>
+        ipcRenderer.invoke("multimodal:pickImage"),
+
+    getMultimodalAnalyses: (pairId: number) =>
+        ipcRenderer.invoke("multimodal:getAnalyses", pairId),
+
+    analyzeMultimodalPair: (payload: {
+        pairId: number; analysisType: string; customPrompt?: string;
+    }) => ipcRenderer.invoke("multimodal:analyze", payload),
+
     // ================= FINISHED =================
     onAlignmentFinished: (callback: (data: any) => void) => {
         if (finishedListener) {

@@ -1,8 +1,20 @@
 import OpenAI from "openai";
 
+export interface ImageContentPart {
+    type: "image_url";
+    image_url: { url: string; detail?: "low" | "high" | "auto" };
+}
+
+export interface TextContentPart {
+    type: "text";
+    text: string;
+}
+
+export type MultimodalContentPart = TextContentPart | ImageContentPart;
+
 export type ChatMessage = {
     role: "system" | "user" | "assistant";
-    content: string;
+    content: string | MultimodalContentPart[];
 };
 
 export interface ChatRequest {
