@@ -80,7 +80,7 @@ export async function sendChatCompletion(
         };
     } catch (err: any) {
         logLLMError(err, `model=${cred?.modelName}, baseURL=${cred?.baseUrl}`);
-        throw new Error(normalizeChatError(err));
+        throw new Error(`[api] ${normalizeChatError(err)}`);
     }
 }
 

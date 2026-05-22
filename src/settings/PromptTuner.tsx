@@ -233,7 +233,8 @@ export default function PromptTuner() {
                 });
             }
         } catch (err: any) {
-            setLlmResponse(`Error: ${err?.message || err}`);
+            const msg = (err?.message || String(err)).replace(/^\[api\] /, '');
+            setLlmResponse(`Error: ${msg}`);
         } finally {
             setTesting(false);
         }

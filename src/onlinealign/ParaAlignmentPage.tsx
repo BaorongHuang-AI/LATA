@@ -1019,19 +1019,23 @@ const ParaAlignmentPage: React.FC = () => {
             links
         );
 
-        console.log("pairs", pairs, documentId);
         if (!documentId) {
             console.error("documentId is missing from route params");
-            return; // or handle the error appropriately
+            return;
         }
-        const results = await window.api.alignParagraphBatch(
-            pairs,
-            sourceMeta.language,
-            targetMeta.language,
-            documentId
-        );
-
-        console.log(results);
+        try {
+            const results = await window.api.alignParagraphBatch(
+                pairs,
+                sourceMeta.language,
+                targetMeta.language,
+                documentId
+            );
+            console.log(results);
+        } catch (err: any) {
+            const msg = (err?.message || String(err)).replace(/^\[api\] /, '');
+            console.error("Batch alignment failed:", msg);
+            message.error(`Sentence alignment failed: ${msg}`);
+        }
     };
 
     return (

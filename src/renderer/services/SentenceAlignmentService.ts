@@ -1809,13 +1809,14 @@ ${targetSlice.map(t => `${t.id}: ${t.text}`).join("\n")}
                 }
             });
         } catch (err) {
-            console.warn("LLM call failed", err);
-            return [];
+            const msg = err?.message || String(err);
+            console.error("monotonicAlignBlock: LLM call failed", msg);
+            throw new Error(`Realign LLM call failed: ${msg}`);
         }
 
         if (!response || !response.alignments || !Array.isArray(response.alignments)) {
             console.warn("monotonicAlignBlock: invalid or null response from LLM", response);
-            return [];
+            throw new Error("LLM returned no alignments for realignment");
         }
 
         console.log("aligned results mono tonic", response);

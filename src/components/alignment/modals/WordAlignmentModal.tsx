@@ -104,9 +104,10 @@ const WordAlignmentModal: React.FC<WordAlignmentModalProps> = ({
             setSelectedSourceIds([]);
             setSelectedTargetIds([]);
             message.success("Word segmentation and alignment complete");
-        } catch (e) {
-            console.error(e);
-            message.error("Failed to segment and align words");
+        } catch (e: any) {
+            const msg = (e?.message || String(e)).replace(/^\[api\] /, '');
+            console.error("Word alignment failed:", msg);
+            message.error(`Word alignment failed: ${msg}`);
         } finally {
             setAlignLoading(false);
         }
@@ -461,7 +462,17 @@ const WordAlignmentModal: React.FC<WordAlignmentModalProps> = ({
                     </Button>
                     <div style={{ display: "flex", gap: 8 }}>
                         <Button onClick={onClose}>Close</Button>
-                        <Button type="primary" onClick={handleSave}>Save</Button>
+                        <Button
+                            type="primary"
+                            onClick={handleSave}
+                            style={{
+                                backgroundColor: '#1677ff',
+                                borderColor: '#1677ff',
+                                color: '#fff',
+                            }}
+                        >
+                            Save
+                        </Button>
                     </div>
                 </div>
             }
@@ -483,7 +494,16 @@ const WordAlignmentModal: React.FC<WordAlignmentModalProps> = ({
                 <>
                     {selectedSourceIds.length > 0 && selectedTargetIds.length > 0 && (
                         <div style={{ marginBottom: 8 }}>
-                            <Button size="small" type="primary" onClick={handleCreateLink}>
+                            <Button
+                                size="small"
+                                type="primary"
+                                onClick={handleCreateLink}
+                                style={{
+                                    backgroundColor: '#1677ff',
+                                    borderColor: '#1677ff',
+                                    color: '#fff',
+                                }}
+                            >
                                 Link Selected Words
                             </Button>
                         </div>

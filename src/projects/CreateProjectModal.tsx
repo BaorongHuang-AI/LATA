@@ -108,6 +108,13 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
             onOk={handleOk}
             width={700}
             okText={project ? "Save Changes" : "Create Project"}
+            okButtonProps={{
+                style: {
+                    backgroundColor: '#1677ff',
+                    borderColor: '#1677ff',
+                    color: '#fff',
+                },
+            }}
             destroyOnClose
         >
             <Form form={form} layout="vertical">

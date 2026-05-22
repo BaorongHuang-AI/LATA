@@ -386,6 +386,7 @@ export async function llmCallWithRetry<T>(
     fn: () => Promise<string>,
     maxRetries = 2
 ): Promise<any | null> {
+    let lastApiError: string | null = null;
     for (let i = 0; i <= maxRetries; i++) {
         try {
             const raw = await fn();
@@ -394,10 +395,19 @@ export async function llmCallWithRetry<T>(
                 return parsed as T;
             }
             console.warn(`llmCallWithRetry: empty JSON object on attempt ${i + 1}/${maxRetries + 1}`);
-        } catch (e) {
-            console.warn(`llmCallWithRetry: JSON parse failed on attempt ${i + 1}/${maxRetries + 1}`, e);
+        } catch (e: any) {
+            // Distinguish API errors (fn threw) from JSON parse errors (fn succeeded, parse failed)
+            if (e?.message?.includes("[api]")) {
+                lastApiError = e.message;
+                console.warn(`llmCallWithRetry: API error on attempt ${i + 1}/${maxRetries + 1}: ${lastApiError}`);
+            } else {
+                console.warn(`llmCallWithRetry: JSON parse failed on attempt ${i + 1}/${maxRetries + 1}`, e?.message);
+            }
         }
     }
-    console.error(`llmCallWithRetry: all ${maxRetries + 1} attempts failed, returning null`);
+    const errMsg = lastApiError
+        ? `LLM API error: ${lastApiError}`
+        : `all ${maxRetries + 1} attempts failed (JSON parse or empty response)`;
+    console.error(`llmCallWithRetry: ${errMsg}`);
     return null;
 }

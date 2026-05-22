@@ -347,9 +347,10 @@ const DocAlignmentPage: React.FC = () => {
             // navigate(`/alignsent/${savedId}`);
             // setAlignStatus("processing");
 
-        } catch (e) {
-            console.error(e);
-            message.error("Failed to start alignment");
+        } catch (e: any) {
+            const msg = (e?.message || String(e)).replace(/^\[api\] /, '');
+            console.error("Alignment failed:", msg);
+            message.error(`Alignment failed: ${msg}`);
         } finally {
             // setAlignLoading(false);
         }

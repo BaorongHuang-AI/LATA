@@ -1119,20 +1119,24 @@ const AlignmentPage: React.FC<AlignmentPageProps> = ({ alignmentType }) => {
             links
         );
 
-        console.log("pairs", pairs, documentId);
         if (!documentId) {
             console.error("documentId is missing from route params");
-            return; // or handle the error appropriately
+            return;
         }
-        const results = await window.api.alignParagraphBatch(
-            pairs,
-            sourceMeta.language,
-            targetMeta.language,
-            documentId
-        );
-
-        console.log(results);
-        navigate("/alignsent/" + documentId)
+        try {
+            const results = await window.api.alignParagraphBatch(
+                pairs,
+                sourceMeta.language,
+                targetMeta.language,
+                documentId
+            );
+            console.log(results);
+            navigate("/alignsent/" + documentId);
+        } catch (err: any) {
+            const msg = (err?.message || String(err)).replace(/^\[api\] /, '');
+            console.error("Batch alignment failed:", msg);
+            message.error(`Sentence alignment failed: ${msg}`);
+        }
     };
 
     const handleInitiateRealign = () => {
@@ -1253,14 +1257,15 @@ const AlignmentPage: React.FC<AlignmentPageProps> = ({ alignmentType }) => {
                 tgtLang: targetMeta?.language || 'en',
             });
         } catch (err) {
+            const msg = (err?.message || String(err)).replace(/^\[api\] /, '');
             console.error('Realign LLM call failed:', err);
-            message.error('Realignment failed. The LLM call encountered an error.');
+            message.error(`Realignment failed: ${msg}`);
             setProcessing(false);
             return;
         }
 
         if (!llmAlignments || llmAlignments.length === 0) {
-            message.warning('LLM returned no alignments. Existing links were preserved.');
+            message.warning('LLM returned no alignments for the selected range. Existing links were preserved.');
             setProcessing(false);
             setRealignStartSourceId(null);
             setRealignEndSourceId(null);
