@@ -18,6 +18,7 @@ import MultimodalPage from "./multimodal/MultimodalPage";
 import DocumentViewer from "./viewer/DocumentViewer";
 import DocumentViewerWrapper from "./viewer/DocumentViewerWrapper";
 import ProjectsPage from "./projects/ProjectsPage";
+import CorpusAnalysisPage from "./corpus/CorpusAnalysisPage";
 // import ParaAlignmentPage from "./onlinealign/ParaAlignmentPage";
 
 
@@ -61,6 +62,7 @@ const Layout = () => {
                     <Route path="/alignsent/:documentId" element={<SentAlignmentPage />} />
                     <Route path="/projects" element={<ProjectsPage />} />
                     <Route path="/multimodal" element={<MultimodalPage />} />
+                    <Route path="/corpusanalysis" element={<CorpusAnalysisPage />} />
                 </Routes>
             </div>
         </div>

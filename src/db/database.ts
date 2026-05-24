@@ -1757,6 +1757,62 @@ CREATE TABLE IF NOT EXISTS multimodal_analyses (
   FOREIGN KEY (pair_id) REFERENCES multimodal_pairs(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS corpus_analyses (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  document_ids TEXT NOT NULL,
+  skill_key TEXT NOT NULL,
+  skill_label TEXT NOT NULL,
+  model_name TEXT,
+  result TEXT,
+  token_usage TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT OR IGNORE INTO "llm_prompts" (task_type, name, system_prompt, user_prompt, model, temperature, max_tokens)
+VALUES
+(
+  'corpus_analysis',
+  'Statistical Overview',
+  'You are a corpus linguist analyzing aligned parallel texts. Provide a detailed statistical overview of the corpus: total segments, word counts per language, alignment confidence distribution, segment length ratios, and alignment type distribution (1:1, 1:many, many:1, many:many). Use tables and bullet points for clarity.',
+  'Analyze the following aligned parallel corpus segments and provide a comprehensive statistical overview.\n\nAligned Segments:\n{{segments}}',
+  NULL, 0.3, 4096
+),
+(
+  'corpus_analysis',
+  'Translation Techniques',
+  'You are a translation studies researcher. Analyze the provided parallel segments and identify common translation techniques: literal translation, transposition, modulation, addition, omission, equivalence, adaptation, borrowing, calque, compensation. Reference specific segment numbers. Organize findings by technique category with examples.',
+  'Identify and analyze the translation techniques used in the following parallel corpus segments. Reference specific segment numbers.\n\nAligned Segments:\n{{segments}}',
+  NULL, 0.3, 4096
+),
+(
+  'corpus_analysis',
+  'Terminology Consistency',
+  'You are a terminology analyst. Examine the parallel corpus for key terms in the source language and check whether they are translated consistently in the target language. Flag any inconsistencies with segment references. Suggest standardized translations for problematic terms.',
+  'Analyze terminology consistency across the following parallel corpus segments. Identify key terms and check translation consistency.\n\nAligned Segments:\n{{segments}}',
+  NULL, 0.3, 4096
+),
+(
+  'corpus_analysis',
+  'Alignment Quality',
+  'You are an alignment quality assessor. Review the provided sentence alignments and evaluate their quality. Look for potential misalignments, segments with low confidence, unusual length ratios, and patterns that might indicate alignment errors. Flag specific segment numbers that may need review.',
+  'Assess the quality of the following sentence alignments. Flag any segments that may be misaligned or need manual review.\n\nAligned Segments:\n{{segments}}',
+  NULL, 0.3, 4096
+),
+(
+  'corpus_analysis',
+  'Readability Analysis',
+  'You are a text analyst comparing readability across languages. Analyze the source and target texts for readability characteristics: sentence length distribution, word length, structural complexity, use of passive voice, and register. Compare source vs target readability and note significant divergences.',
+  'Compare the readability of source and target texts across the following aligned parallel segments.\n\nAligned Segments:\n{{segments}}',
+  NULL, 0.3, 4096
+),
+(
+  'corpus_analysis',
+  'Custom Analysis',
+  'You are a corpus analysis expert. Analyze the provided parallel text segments according to the user''s request. Be thorough, reference specific segment numbers, and organize findings clearly.',
+  '{{custom_prompt}}\n\nAligned Segments:\n{{segments}}',
+  NULL, 0.3, 4096
+);
+
 INSERT OR IGNORE INTO "translation_tags"
 ("id", "name", "description", "sample", "color", "created_at", "updated_at")
 VALUES

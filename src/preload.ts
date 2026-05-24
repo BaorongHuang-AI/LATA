@@ -448,6 +448,14 @@ contextBridge.exposeInMainWorld('api', {
         pairId: number; analysisType: string; customPrompt?: string;
     }) => ipcRenderer.invoke("multimodal:analyze", payload),
 
+    // ================= CORPUS ANALYSIS =================
+    getAlignedDocuments: () => ipcRenderer.invoke("corpus:getAlignedDocuments"),
+    getCorpusSegments: (documentIds: number[]) => ipcRenderer.invoke("corpus:getSegments", documentIds),
+    getCorpusSkills: () => ipcRenderer.invoke("corpus:getSkills"),
+    runCorpusAnalysis: (payload: { documentIds: number[]; skillKey: string; customPrompt?: string }) =>
+        ipcRenderer.invoke("corpus:runAnalysis", payload),
+    getCorpusAnalyses: () => ipcRenderer.invoke("corpus:getAnalyses"),
+
     // ================= FINISHED =================
     onAlignmentFinished: (callback: (data: any) => void) => {
         if (finishedListener) {

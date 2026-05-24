@@ -429,6 +429,13 @@ declare global {
             pickImageFile(): Promise<{ filePath: string; fileName: string } | null>;
             getMultimodalAnalyses(pairId: number): Promise<import("./types/multimodal").MultimodalAnalysis[]>;
             analyzeMultimodalPair(payload: { pairId: number; analysisType: string; customPrompt?: string }): Promise<import("./types/multimodal").MultimodalAnalysis>;
+
+            // ==================== Corpus Analysis ====================
+            getAlignedDocuments(): Promise<import("./types/corpus").AlignedDocument[]>;
+            getCorpusSegments(documentIds: number[]): Promise<import("./types/corpus").AlignedSegment[]>;
+            getCorpusSkills(): Promise<import("./types/corpus").CorpusSkill[]>;
+            runCorpusAnalysis(payload: { documentIds: number[]; skillKey: string; customPrompt?: string }): Promise<import("./types/corpus").CorpusAnalysis & { segment_count: number; truncated: boolean }>;
+            getCorpusAnalyses(): Promise<import("./types/corpus").CorpusAnalysis[]>;
         };
     }
 }
