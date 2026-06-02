@@ -18,6 +18,7 @@ export interface AlignedSegment {
 }
 
 export interface CorpusSkill {
+  id: number;
   key: string;
   label: string;
   description: string;

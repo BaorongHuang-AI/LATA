@@ -112,32 +112,6 @@ function fillPrompt(
     return result;
 }
 
-// ── Highlight helper for TextArea preview (inline) ───────────────────
-
-function highlightPrompt(text: string): React.ReactNode[] {
-    if (!text) return [];
-    // Split on either mustache or template-literal boundaries
-    const re = /(\{\{\w+\}\}|\$\{[^}]*\})/g;
-    const parts = text.split(re);
-    return parts.map((part, i) => {
-        if (part.match(/^\{\{/) || part.match(/^\$\{/)) {
-            return (
-                <span
-                    key={i}
-                    className="bg-amber-100 text-amber-800 px-1 rounded font-mono text-xs border border-amber-300 whitespace-nowrap"
-                >
-                    {part}
-                </span>
-            );
-        }
-        return (
-            <span key={i} className="whitespace-pre-wrap">
-                {part}
-            </span>
-        );
-    });
-}
-
 // ── Component ────────────────────────────────────────────────────────
 
 export default function PromptTuner() {
@@ -424,53 +398,17 @@ export default function PromptTuner() {
                                         </span>
                                     )}
                                 </div>
-                                <div className="relative">
-                                    {/* Highlighted overlay for readability */}
-                                    <div
-                                        className="absolute inset-0 pointer-events-none p-3 overflow-hidden text-sm leading-relaxed z-10"
-                                        style={{
-                                            fontFamily:
-                                                "ui-monospace, monospace",
-                                            color: "transparent",
-                                        }}
-                                    >
-                                        {highlightPrompt(userPrompt)}
-                                    </div>
-                                    <TextArea
-                                        rows={10}
-                                        value={userPrompt}
-                                        onChange={(e) =>
-                                            setUserPrompt(e.target.value)
-                                        }
-                                        className="font-mono text-sm relative z-0"
-                                        style={{
-                                            fontFamily: "ui-monospace, monospace",
-                                            color: "#374151",
-                                            caretColor: "#000",
-                                            background: "transparent",
-                                        }}
-                                    />
-                                </div>
-                                {/* Detected placeholders as tags */}
-                                {placeholders.length > 0 && (
-                                    <div className="mt-2 flex flex-wrap gap-1 items-center">
-                                        <span className="text-xs text-gray-400 mr-1">
-                                            Detected:
-                                        </span>
-                                        {placeholders.map((ph) => (
-                                            <Tag
-                                                key={ph.varName}
-                                                color="gold"
-                                                className="text-xs"
-                                            >
-                                                {ph.raw.length > 40
-                                                    ? ph.raw.substring(0, 38) +
-                                                      "…}"
-                                                    : ph.raw}
-                                            </Tag>
-                                        ))}
-                                    </div>
-                                )}
+                                <TextArea
+                                    rows={10}
+                                    value={userPrompt}
+                                    onChange={(e) =>
+                                        setUserPrompt(e.target.value)
+                                    }
+                                    className="font-mono text-sm"
+                                    style={{
+                                        fontFamily: "ui-monospace, monospace",
+                                    }}
+                                />
                             </div>
 
                             {/* Test Variables */}
@@ -491,19 +429,14 @@ export default function PromptTuner() {
                                                 key={ph.varName}
                                                 className="flex items-start gap-2"
                                             >
-                                                <div className="shrink-0 mt-1 min-w-[120px]">
-                                                    <Tag
-                                                        color="gold"
-                                                        className="text-xs"
-                                                    >
-                                                        {ph.raw.length > 30
-                                                            ? ph.raw.substring(
-                                                                  0,
-                                                                  28
-                                                              ) + "…}"
-                                                            : ph.raw}
-                                                    </Tag>
-                                                </div>
+                                                <span className="text-xs font-mono text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200 shrink-0">
+                                                    {ph.raw.length > 30
+                                                        ? ph.raw.substring(
+                                                              0,
+                                                              28
+                                                          ) + "…}"
+                                                        : ph.raw}
+                                                </span>
                                                 <TextArea
                                                     rows={
                                                         ph.varName.includes(

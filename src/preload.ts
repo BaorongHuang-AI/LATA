@@ -455,6 +455,12 @@ contextBridge.exposeInMainWorld('api', {
     runCorpusAnalysis: (payload: { documentIds: number[]; skillKey: string; customPrompt?: string }) =>
         ipcRenderer.invoke("corpus:runAnalysis", payload),
     getCorpusAnalyses: () => ipcRenderer.invoke("corpus:getAnalyses"),
+    saveCorpusSkill: (skill: { name: string; system_prompt: string; user_prompt_template: string }) =>
+        ipcRenderer.invoke("corpus:saveSkill", skill),
+    updateCorpusSkill: (id: number, skill: { name?: string; system_prompt?: string; user_prompt_template?: string }) =>
+        ipcRenderer.invoke("corpus:updateSkill", id, skill),
+    deleteCorpusSkill: (id: number) =>
+        ipcRenderer.invoke("corpus:deleteSkill", id),
 
     // ================= FINISHED =================
     onAlignmentFinished: (callback: (data: any) => void) => {

@@ -26,6 +26,18 @@ ipcMain.handle("corpus:getAnalyses", async () => {
   return corpusService.getCorpusAnalyses();
 });
 
+ipcMain.handle("corpus:saveSkill", async (_, skill: { name: string; system_prompt: string; user_prompt_template: string }) => {
+  return corpusService.saveCorpusSkill(skill);
+});
+
+ipcMain.handle("corpus:updateSkill", async (_, id: number, skill: { name?: string; system_prompt?: string; user_prompt_template?: string }) => {
+  corpusService.updateCorpusSkill(id, skill);
+});
+
+ipcMain.handle("corpus:deleteSkill", async (_, id: number) => {
+  corpusService.deleteCorpusSkill(id);
+});
+
 ipcMain.handle("corpus:runAnalysis", async (_, payload: {
   documentIds: number[];
   skillKey: string;

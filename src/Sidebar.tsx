@@ -18,11 +18,11 @@ export const Sidebar = ({ collapsed, setCollapsed }: { collapsed: boolean, setCo
         // { name: "Translation Training", path: "/translationtraining", icon: "📚" },
         // { name: "Courses", path: "/admin/courses", icon: "📚" },
         // { name: "New Course", path: "/admin/newcourse", icon: "➕" },
-        { name: "Prompts", path: "/promptmanager", icon: "💬️" },
+        // { name: "Prompts", path: "/promptmanager", icon: "💬️" },
         { name: "Prompt Tuner", path: "/prompttuner", icon: "🧪" },
         { name: "Techniques", path: "/tagmanager", icon: "🏷️" },
         { name: "Corpus Analysis", path: "/corpusanalysis", icon: "📊" },
-        { name: "Multimodal", path: "/multimodal", icon: "🖼️" },
+        // { name: "Multimodal", path: "/multimodal", icon: "🖼️" },
         { name: "LLMs", path: "/settings", icon: "⚙️" },
     ];
 

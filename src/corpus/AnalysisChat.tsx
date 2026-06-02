@@ -1,7 +1,10 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { Button, Select, Spin, message } from "antd";
-import { Send, FileText, Database } from "lucide-react";
+import { Send, FileText, Database, Settings } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { CorpusSkill, CorpusAnalysis } from "../types/corpus";
+import SkillManagerModal from "./SkillManagerModal";
 
 interface AnalysisChatProps {
   selectedDocIds: Set<number>;
@@ -14,6 +17,7 @@ const AnalysisChat: React.FC<AnalysisChatProps> = ({ selectedDocIds }) => {
   const [running, setRunning] = useState(false);
   const [analyses, setAnalyses] = useState<CorpusAnalysis[]>([]);
   const [activeAnalysis, setActiveAnalysis] = useState<number | null>(null);
+  const [skillModalOpen, setSkillModalOpen] = useState(false);
   const resultsEndRef = useRef<HTMLDivElement>(null);
 
   const loadSkills = useCallback(async () => {
@@ -148,9 +152,11 @@ const AnalysisChat: React.FC<AnalysisChatProps> = ({ selectedDocIds }) => {
                               </span>
                             )}
                           </div>
-                          <pre className="text-sm whitespace-pre-wrap text-gray-800 leading-relaxed font-sans">
-                            {analysis.result}
-                          </pre>
+                          <div className="wmde-markdown text-sm">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                              {analysis.result}
+                            </ReactMarkdown>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -204,6 +210,12 @@ const AnalysisChat: React.FC<AnalysisChatProps> = ({ selectedDocIds }) => {
               >
                 Run
               </Button>
+              <Button
+                icon={<Settings size={14} />}
+                onClick={() => setSkillModalOpen(true)}
+              >
+                Skills
+              </Button>
             </div>
             {selectedDocIds.size === 0 && (
               <p className="text-xs text-gray-400 mt-2">
@@ -211,6 +223,12 @@ const AnalysisChat: React.FC<AnalysisChatProps> = ({ selectedDocIds }) => {
               </p>
             )}
           </div>
+
+          <SkillManagerModal
+            open={skillModalOpen}
+            onClose={() => setSkillModalOpen(false)}
+            onSkillsChanged={loadSkills}
+          />
         </>
       )}
     </div>

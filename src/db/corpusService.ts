@@ -89,6 +89,7 @@ class CorpusService {
   getCorpusSkills(): CorpusSkill[] {
     const rows = db.prepare(`
       SELECT
+        id,
         name as key,
         name as label,
         system_prompt,
@@ -101,6 +102,7 @@ class CorpusService {
           ELSE 0
         END, name
     `).all() as Array<{
+      id: number;
       key: string;
       label: string;
       system_prompt: string;
@@ -135,6 +137,48 @@ class CorpusService {
       SELECT * FROM corpus_analyses
       ORDER BY created_at DESC
     `).all() as CorpusAnalysis[];
+  }
+
+  saveCorpusSkill(skill: { name: string; system_prompt: string; user_prompt_template: string }): number {
+    const result = db.prepare(`
+      INSERT INTO llm_prompts (task_type, name, system_prompt, user_prompt, temperature, max_tokens)
+      VALUES ('corpus_analysis', ?, ?, ?, 0.3, 4096)
+      ON CONFLICT(task_type, name) DO UPDATE SET
+        system_prompt = excluded.system_prompt,
+        user_prompt = excluded.user_prompt,
+        updated_at = CURRENT_TIMESTAMP
+    `).run(skill.name, skill.system_prompt, skill.user_prompt_template);
+    return result.lastInsertRowid as number;
+  }
+
+  updateCorpusSkill(id: number, skill: { name?: string; system_prompt?: string; user_prompt_template?: string }): void {
+    const fields: string[] = [];
+    const values: unknown[] = [];
+
+    if (skill.name !== undefined) {
+      fields.push("name = ?");
+      values.push(skill.name);
+    }
+    if (skill.system_prompt !== undefined) {
+      fields.push("system_prompt = ?");
+      values.push(skill.system_prompt);
+    }
+    if (skill.user_prompt_template !== undefined) {
+      fields.push("user_prompt = ?");
+      values.push(skill.user_prompt_template);
+    }
+
+    if (fields.length === 0) return;
+
+    fields.push("updated_at = CURRENT_TIMESTAMP");
+    values.push(id);
+
+    db.prepare(`UPDATE llm_prompts SET ${fields.join(", ")} WHERE id = ? AND task_type = 'corpus_analysis'`)
+      .run(...values);
+  }
+
+  deleteCorpusSkill(id: number): void {
+    db.prepare("DELETE FROM llm_prompts WHERE id = ? AND task_type = 'corpus_analysis'").run(id);
   }
 }
 

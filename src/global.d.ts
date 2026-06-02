@@ -436,6 +436,9 @@ declare global {
             getCorpusSkills(): Promise<import("./types/corpus").CorpusSkill[]>;
             runCorpusAnalysis(payload: { documentIds: number[]; skillKey: string; customPrompt?: string }): Promise<import("./types/corpus").CorpusAnalysis & { segment_count: number; truncated: boolean }>;
             getCorpusAnalyses(): Promise<import("./types/corpus").CorpusAnalysis[]>;
+            saveCorpusSkill(skill: { name: string; system_prompt: string; user_prompt_template: string }): Promise<number>;
+            updateCorpusSkill(id: number, skill: { name?: string; system_prompt?: string; user_prompt_template?: string }): Promise<void>;
+            deleteCorpusSkill(id: number): Promise<void>;
         };
     }
 }
