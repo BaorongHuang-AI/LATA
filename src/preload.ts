@@ -462,6 +462,12 @@ contextBridge.exposeInMainWorld('api', {
     deleteCorpusSkill: (id: number) =>
         ipcRenderer.invoke("corpus:deleteSkill", id),
 
+    // ================= CORPUS SEARCH =================
+    searchCorpusSegments: (params: import("./types/corpus").CorpusSearchRequest) =>
+        ipcRenderer.invoke("corpus:searchSegments", params),
+    getCorpusMetadataOptions: (documentIds: number[]) =>
+        ipcRenderer.invoke("corpus:getMetadataOptions", documentIds),
+
     // ================= FINISHED =================
     onAlignmentFinished: (callback: (data: any) => void) => {
         if (finishedListener) {

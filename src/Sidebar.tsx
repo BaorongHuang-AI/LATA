@@ -22,6 +22,7 @@ export const Sidebar = ({ collapsed, setCollapsed }: { collapsed: boolean, setCo
         { name: "Prompt Tuner", path: "/prompttuner", icon: "🧪" },
         { name: "Techniques", path: "/tagmanager", icon: "🏷️" },
         { name: "Corpus Analysis", path: "/corpusanalysis", icon: "📊" },
+        { name: "Corpus Search", path: "/corpussearch", icon: "🔍" },
         // { name: "Multimodal", path: "/multimodal", icon: "🖼️" },
         { name: "LLMs", path: "/settings", icon: "⚙️" },
     ];

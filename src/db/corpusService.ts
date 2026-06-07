@@ -1,5 +1,5 @@
 import { db } from "./db";
-import type { AlignedDocument, AlignedSegment, CorpusSkill, CorpusAnalysis } from "../types/corpus";
+import type { AlignedDocument, AlignedSegment, CorpusSkill, CorpusAnalysis, EnrichedAlignmentRow, CorpusMetadataOptions } from "../types/corpus";
 
 class CorpusService {
   getAlignedDocuments(): AlignedDocument[] {
@@ -179,6 +179,107 @@ class CorpusService {
 
   deleteCorpusSkill(id: number): void {
     db.prepare("DELETE FROM llm_prompts WHERE id = ? AND task_type = 'corpus_analysis'").run(id);
+  }
+
+  getEnrichedAlignments(documentIds: number[]): EnrichedAlignmentRow[] {
+    if (documentIds.length === 0) return [];
+
+    const placeholders = documentIds.map(() => "?").join(",");
+
+    return db.prepare(`
+      SELECT
+        sa.id AS alignment_id,
+        sa.document_id,
+        d.title AS document_title,
+        p.title AS project_title,
+        sa.source_sentence_keys,
+        sa.target_sentence_keys,
+        sa.confidence,
+        sa.strategy,
+        sm.language AS source_language,
+        tm.language AS target_language,
+        sm.domain AS source_domain,
+        tm.domain AS target_domain,
+        sm.authors AS source_authors,
+        tm.authors AS target_authors,
+        sm.keywords AS source_keywords,
+        tm.keywords AS target_keywords
+      FROM sentence_alignments sa
+      JOIN documents d ON d.id = sa.document_id
+      LEFT JOIN projects p ON p.id = d.project_id
+      LEFT JOIN document_metadata sm ON sm.document_id = sa.document_id AND sm.metadata_type = 'source'
+      LEFT JOIN document_metadata tm ON tm.document_id = sa.document_id AND tm.metadata_type = 'target'
+      WHERE sa.document_id IN (${placeholders})
+      ORDER BY sa.document_id, sa.id
+    `).all(...documentIds) as EnrichedAlignmentRow[];
+  }
+
+  getMetadataOptions(documentIds: number[]): CorpusMetadataOptions {
+    if (documentIds.length === 0) {
+      return { sourceLanguages: [], targetLanguages: [], domains: [], authors: [], keywords: [] };
+    }
+
+    const placeholders = documentIds.map(() => "?").join(",");
+
+    const rows = db.prepare(`
+      SELECT DISTINCT
+        sm.language AS source_language,
+        tm.language AS target_language,
+        sm.domain AS source_domain,
+        tm.domain AS target_domain,
+        sm.authors AS source_authors,
+        tm.authors AS target_authors,
+        sm.keywords AS source_keywords,
+        tm.keywords AS target_keywords
+      FROM document_metadata sm
+      LEFT JOIN document_metadata tm ON tm.document_id = sm.document_id AND tm.metadata_type = 'target'
+      WHERE sm.metadata_type = 'source'
+        AND sm.document_id IN (${placeholders})
+    `).all(...documentIds) as Array<{
+      source_language: string | null;
+      target_language: string | null;
+      source_domain: string | null;
+      target_domain: string | null;
+      source_authors: string | null;
+      target_authors: string | null;
+      source_keywords: string | null;
+      target_keywords: string | null;
+    }>;
+
+    const sourceLanguages = new Set<string>();
+    const targetLanguages = new Set<string>();
+    const domains = new Set<string>();
+    const authors = new Set<string>();
+    const keywords = new Set<string>();
+
+    const parseJsonArray = (val: string | null): string[] => {
+      if (!val) return [];
+      try {
+        const parsed = JSON.parse(val);
+        return Array.isArray(parsed) ? parsed.map(String) : [];
+      } catch {
+        return [];
+      }
+    };
+
+    for (const row of rows) {
+      if (row.source_language) sourceLanguages.add(row.source_language);
+      if (row.target_language) targetLanguages.add(row.target_language);
+      if (row.source_domain) domains.add(row.source_domain);
+      if (row.target_domain) domains.add(row.target_domain);
+      parseJsonArray(row.source_authors).forEach((a) => authors.add(a));
+      parseJsonArray(row.target_authors).forEach((a) => authors.add(a));
+      parseJsonArray(row.source_keywords).forEach((k) => keywords.add(k));
+      parseJsonArray(row.target_keywords).forEach((k) => keywords.add(k));
+    }
+
+    return {
+      sourceLanguages: Array.from(sourceLanguages).sort(),
+      targetLanguages: Array.from(targetLanguages).sort(),
+      domains: Array.from(domains).sort(),
+      authors: Array.from(authors).sort(),
+      keywords: Array.from(keywords).sort(),
+    };
   }
 }
 

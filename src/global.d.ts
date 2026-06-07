@@ -439,6 +439,10 @@ declare global {
             saveCorpusSkill(skill: { name: string; system_prompt: string; user_prompt_template: string }): Promise<number>;
             updateCorpusSkill(id: number, skill: { name?: string; system_prompt?: string; user_prompt_template?: string }): Promise<void>;
             deleteCorpusSkill(id: number): Promise<void>;
+
+            // ==================== Corpus Search ====================
+            searchCorpusSegments(params: import("./types/corpus").CorpusSearchRequest): Promise<import("./types/corpus").CorpusSearchResult[]>;
+            getCorpusMetadataOptions(documentIds: number[]): Promise<import("./types/corpus").CorpusMetadataOptions>;
         };
     }
 }

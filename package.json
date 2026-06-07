@@ -1,6 +1,6 @@
 {
   "name": "LATA",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "A Tool for LLM-Assisted  Translation Annotation",
   "main": ".webpack/main",
   "scripts": {

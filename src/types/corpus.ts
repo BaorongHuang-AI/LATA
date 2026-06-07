@@ -36,3 +36,67 @@ export interface CorpusAnalysis {
   token_usage?: string;
   created_at?: string;
 }
+
+// ==================== Corpus Search ====================
+
+export interface EnrichedAlignmentRow {
+  alignment_id: number;
+  document_id: number;
+  document_title: string;
+  project_title: string | null;
+  source_sentence_keys: string;
+  target_sentence_keys: string;
+  confidence: number | null;
+  strategy: string | null;
+  source_language: string | null;
+  target_language: string | null;
+  source_domain: string | null;
+  target_domain: string | null;
+  source_authors: string | null;
+  target_authors: string | null;
+  source_keywords: string | null;
+  target_keywords: string | null;
+}
+
+export interface CorpusSearchResult {
+  alignmentId: number;
+  documentId: number;
+  documentTitle: string;
+  projectTitle?: string;
+  sourceText: string;
+  targetText: string;
+  sourceLanguage?: string;
+  targetLanguage?: string;
+  sourceDomain?: string;
+  targetDomain?: string;
+  sourceAuthors: string[];
+  targetAuthors: string[];
+  sourceKeywords: string[];
+  targetKeywords: string[];
+  confidence?: number;
+  strategy?: string;
+}
+
+export interface CorpusSearchRequest {
+  documentIds: number[];
+  pattern: string;
+  searchSource: boolean;
+  searchTarget: boolean;
+  filters: CorpusSearchFilters;
+}
+
+export interface CorpusSearchFilters {
+  sourceLanguages: string[];
+  targetLanguages: string[];
+  domains: string[];
+  authors: string[];
+  keywords: string[];
+}
+
+export interface CorpusMetadataOptions {
+  sourceLanguages: string[];
+  targetLanguages: string[];
+  domains: string[];
+  authors: string[];
+  keywords: string[];
+}
