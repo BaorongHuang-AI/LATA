@@ -300,6 +300,28 @@ declare global {
                 canceled?: boolean;
                 error?: string;
             }>;
+
+            // ==================== Excel Export ====================
+            saveExcelAlignment(data: {
+                sourceMeta: Record<string, unknown>;
+                targetMeta: Record<string, unknown>;
+                sourceLines: Array<{ id: string; text: string }>;
+                targetLines: Array<{ id: string; text: string }>;
+                links: Array<{ sourceIds: string[]; targetIds: string[]; confidence?: number; strategy?: string }>;
+                documentTitle?: string;
+            }): Promise<{ success: boolean; filePath?: string; canceled?: boolean; error?: string }>;
+            saveProjectExcel(payload: {
+                projectTitle: string;
+                documents: Array<{
+                    sourceMeta: Record<string, unknown>;
+                    targetMeta: Record<string, unknown>;
+                    sourceLines: Array<{ id: string; text: string }>;
+                    targetLines: Array<{ id: string; text: string }>;
+                    links: Array<{ sourceIds: string[]; targetIds: string[]; confidence?: number; strategy?: string }>;
+                    documentTitle?: string;
+                }>;
+            }): Promise<{ success: boolean; filePath?: string; canceled?: boolean; error?: string }>;
+
             /**
              * prompts
              */

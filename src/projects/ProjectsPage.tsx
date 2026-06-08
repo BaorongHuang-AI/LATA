@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { message, Modal } from 'antd';
-import { FolderOpen, Plus, Edit2, Trash2, Download, FileText, Settings, ChevronRight, Loader2 } from 'lucide-react';
+import { FolderOpen, Plus, Edit2, Trash2, Download, FileText, Settings, ChevronRight, Loader2, FileSpreadsheet } from 'lucide-react';
 import type { ProjectWithMetadata, ProjectDocument } from '../types/project';
 import CreateProjectModal from './CreateProjectModal';
 import ProjectMetadataPanel from './ProjectMetadataPanel';
@@ -15,6 +15,7 @@ const ProjectsPage = () => {
     const [showMetadataModal, setShowMetadataModal] = useState(false);
     const [expandedProjects, setExpandedProjects] = useState<Set<number>>(new Set());
     const [exportingProjectId, setExportingProjectId] = useState<number | null>(null);
+    const [exportingProjectExcelId, setExportingProjectExcelId] = useState<number | null>(null);
 
     const loadProjects = async () => {
         try {
@@ -172,6 +173,65 @@ const ProjectsPage = () => {
         }
     };
 
+    const handleExportProjectExcel = async (project: ProjectWithMetadata) => {
+        if (!project.id) return;
+        setExportingProjectExcelId(project.id);
+        try {
+            const result = await window.api.exportProject(project.id);
+            if (!result.success || !result.documents?.length) {
+                message.warning("No documents to export in this project");
+                return;
+            }
+
+            const excelDocs: Array<{
+                sourceMeta: Record<string, unknown>;
+                targetMeta: Record<string, unknown>;
+                sourceLines: Array<{ id: string; text: string }>;
+                targetLines: Array<{ id: string; text: string }>;
+                links: Array<{ sourceIds: string[]; targetIds: string[]; confidence?: number; strategy?: string }>;
+                documentTitle?: string;
+            }> = [];
+
+            for (const doc of result.documents) {
+                try {
+                    const docType = getDocTypeFromStatus(doc.status);
+                    const state = await window.api.getAlignmentState(doc.id, docType);
+                    if (state) {
+                        excelDocs.push({
+                            sourceMeta: state.sourceMeta,
+                            targetMeta: state.targetMeta,
+                            sourceLines: state.sourceLines,
+                            targetLines: state.targetLines,
+                            links: state.links,
+                            documentTitle: doc.title,
+                        });
+                    }
+                } catch {
+                    // Skip documents that fail
+                }
+            }
+
+            if (excelDocs.length === 0) {
+                message.warning("No exportable documents found");
+                return;
+            }
+
+            const saveResult = await window.api.saveProjectExcel({
+                projectTitle: project.title,
+                documents: excelDocs,
+            });
+
+            if (saveResult.success) {
+                message.success(`Project "${project.title}" exported to Excel successfully`);
+            }
+        } catch (e) {
+            console.error("Failed to export project to Excel:", e);
+            message.error("Failed to export project to Excel");
+        } finally {
+            setExportingProjectExcelId(null);
+        }
+    };
+
     return (
         <div className="p-6 max-w-7xl mx-auto">
             {/* Header */}
@@ -271,16 +331,34 @@ const ProjectsPage = () => {
                                     className="flex items-center gap-1 px-3 py-1.5 text-sm rounded bg-green-50 text-green-600"
                                 >
                                     <Loader2 size={14} className="animate-spin" />
-                                    Exporting...
+                                    Zip...
                                 </button>
                             ) : (
                                 <button
                                     onClick={() => handleExportProject(project)}
                                     className="flex items-center gap-1 px-3 py-1.5 text-sm rounded bg-green-50 text-green-600 hover:bg-green-100"
-                                    title="Export Project"
+                                    title="Export project as ZIP"
                                 >
                                     <Download size={14} />
-                                    Export All
+                                    Zip
+                                </button>
+                            )}
+                            {exportingProjectExcelId === project.id ? (
+                                <button
+                                    disabled
+                                    className="flex items-center gap-1 px-3 py-1.5 text-sm rounded bg-emerald-50 text-emerald-600"
+                                >
+                                    <Loader2 size={14} className="animate-spin" />
+                                    Excel...
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => handleExportProjectExcel(project)}
+                                    className="flex items-center gap-1 px-3 py-1.5 text-sm rounded bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                                    title="Export project to Excel"
+                                >
+                                    <FileSpreadsheet size={14} />
+                                    Excel
                                 </button>
                             )}
                             <button

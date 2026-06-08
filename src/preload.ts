@@ -225,6 +225,12 @@ contextBridge.exposeInMainWorld('api', {
             targetDocFilename: string;
         }) => ipcRenderer.invoke('save-ces-alignment-zip', data),
 
+        // ================= EXCEL EXPORT =================
+        saveExcelAlignment: (data: import("../src/ipc/excelExport").ExcelAlignmentData) =>
+            ipcRenderer.invoke('save-excel-alignment', data),
+        saveProjectExcel: (payload: { projectTitle: string; documents: import("../src/ipc/excelExport").ExcelAlignmentData[] }) =>
+            ipcRenderer.invoke('save-project-excel', payload),
+
     /**
      * prompts
      */

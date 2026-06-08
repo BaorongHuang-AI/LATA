@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import JSZip from 'jszip';
 import dbService from '../database/database.service';
+import { generateSingleDocumentWorkbook, generateProjectWorkbook, ExcelAlignmentData } from './excelExport';
 
 ipcMain.handle('save-ces-alignment-zip', async (event, { sourceDocXml, targetDocXml, alignXml, sourceDocFilename, targetDocFilename }) => {
     const result = await dialog.showSaveDialog({
@@ -27,7 +28,7 @@ ipcMain.handle('save-ces-alignment-zip', async (event, { sourceDocXml, targetDoc
 
         return { success: true, filePath: result.filePath };
     } catch (error) {
-        return { success: false, error: error.message };
+        return { success: false, error: (error as Error).message };
     }
 });
 
@@ -65,6 +66,56 @@ ipcMain.handle('save-project-zip', async (event, { projectTitle, documents }) =>
 
         return { success: true, filePath: result.filePath };
     } catch (error) {
-        return { success: false, error: error.message };
+        return { success: false, error: (error as Error).message };
+    }
+});
+
+// ---- Excel Export Handlers ----
+
+ipcMain.handle('save-excel-alignment', async (_event, data: ExcelAlignmentData) => {
+    const docTitle = data.documentTitle || 'alignment';
+    const defaultName = `${docTitle.replace(/\s+/g, '_')}.xlsx`;
+
+    const result = await dialog.showSaveDialog({
+        title: 'Export to Excel',
+        defaultPath: defaultName,
+        filters: [{ name: 'Excel Files', extensions: ['xlsx'] }],
+    });
+
+    if (result.canceled || !result.filePath) {
+        return { success: false, canceled: true };
+    }
+
+    try {
+        const workbook = await generateSingleDocumentWorkbook(data);
+        const buffer = await workbook.xlsx.writeBuffer();
+        fs.writeFileSync(result.filePath, buffer as unknown as Buffer);
+        return { success: true, filePath: result.filePath };
+    } catch (error) {
+        return { success: false, error: (error as Error).message };
+    }
+});
+
+ipcMain.handle('save-project-excel', async (_event, payload: { projectTitle: string; documents: ExcelAlignmentData[] }) => {
+    const { projectTitle, documents } = payload;
+    const defaultName = `${projectTitle.replace(/\s+/g, '_')}_export.xlsx`;
+
+    const result = await dialog.showSaveDialog({
+        title: `Export Project to Excel: ${projectTitle}`,
+        defaultPath: defaultName,
+        filters: [{ name: 'Excel Files', extensions: ['xlsx'] }],
+    });
+
+    if (result.canceled || !result.filePath) {
+        return { success: false, canceled: true };
+    }
+
+    try {
+        const workbook = await generateProjectWorkbook(projectTitle, documents);
+        const buffer = await workbook.xlsx.writeBuffer();
+        fs.writeFileSync(result.filePath, buffer as unknown as Buffer);
+        return { success: true, filePath: result.filePath };
+    } catch (error) {
+        return { success: false, error: (error as Error).message };
     }
 });
