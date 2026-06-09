@@ -19,12 +19,14 @@ export const Sidebar = ({ collapsed, setCollapsed }: { collapsed: boolean, setCo
         // { name: "Courses", path: "/admin/courses", icon: "📚" },
         // { name: "New Course", path: "/admin/newcourse", icon: "➕" },
         // { name: "Prompts", path: "/promptmanager", icon: "💬️" },
+        { name: "Corpus Search", path: "/corpussearch", icon: "🔍" },
+        { name: "Corpus Analysis", path: "/corpusanalysis", icon: "📊" },
         { name: "Prompt Tuner", path: "/prompttuner", icon: "🧪" },
         { name: "Techniques", path: "/tagmanager", icon: "🏷️" },
-        { name: "Corpus Analysis", path: "/corpusanalysis", icon: "📊" },
-        { name: "Corpus Search", path: "/corpussearch", icon: "🔍" },
+        { name: "Database", path: "/database", icon: "🗄️" },
         // { name: "Multimodal", path: "/multimodal", icon: "🖼️" },
         { name: "LLMs", path: "/settings", icon: "⚙️" },
+        { name: "Trash", path: "/trash", icon: "🗑️" },
     ];
 
     const handleLogout = async () => {

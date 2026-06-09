@@ -29,8 +29,23 @@ import {DocumentMetadata} from "../types/database";
     });
 
     ipcMain.handle('db:deleteDocument', async (_, id: number) => {
+        // Soft delete — moves to trash
         dbService.deleteDocument(id);
         return { success: true };
+    });
+
+    ipcMain.handle('db:permanentDeleteDocument', async (_, id: number) => {
+        dbService.permanentDeleteDocument(id);
+        return { success: true };
+    });
+
+    ipcMain.handle('db:restoreDocument', async (_, id: number) => {
+        dbService.restoreDocument(id);
+        return { success: true };
+    });
+
+    ipcMain.handle('db:getTrashedDocuments', async () => {
+        return dbService.getTrashedDocuments();
     });
 
     // ==================== Metadata ====================

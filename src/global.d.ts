@@ -171,6 +171,9 @@ declare global {
             ): Promise<void>;
 
             deleteDocument(id: number): Promise<void>;
+            permanentDeleteDocument(id: number): Promise<void>;
+            restoreDocument(id: number): Promise<void>;
+            getTrashedDocuments(): Promise<Document[]>;
 
             // ==================== Metadata ====================
 
@@ -465,6 +468,11 @@ declare global {
             // ==================== Corpus Search ====================
             searchCorpusSegments(params: import("./types/corpus").CorpusSearchRequest): Promise<import("./types/corpus").CorpusSearchResult[]>;
             getCorpusMetadataOptions(documentIds: number[]): Promise<import("./types/corpus").CorpusMetadataOptions>;
+
+            // ==================== Database Export/Import ====================
+            exportDatabase(): Promise<{ success: boolean; filePath?: string; sizeMB?: string; canceled?: boolean; error?: string }>;
+            importDatabase(): Promise<{ success: boolean; backupPath?: string; canceled?: boolean; error?: string }>;
+            restartApp(): Promise<void>;
         };
     }
 }

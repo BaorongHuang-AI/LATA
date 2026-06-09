@@ -92,7 +92,8 @@ class DatabaseService {
     getAllDocuments(): Document[] {
 
         const stmt = db.prepare(`
-            SELECT * FROM documents 
+            SELECT * FROM documents
+            WHERE deleted_at IS NULL
             ORDER BY updated_at DESC
         `);
         return stmt.all() as Document[];
@@ -121,9 +122,31 @@ class DatabaseService {
     }
 
     deleteDocument(id: number): void {
+        // Soft delete — move to trash
+        const stmt = db.prepare('UPDATE documents SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?');
+        stmt.run(id);
+    }
 
+    permanentDeleteDocument(id: number): void {
+        // Hard delete from database
         const stmt = db.prepare('DELETE FROM documents WHERE id = ?');
         stmt.run(id);
+    }
+
+    restoreDocument(id: number): void {
+        const stmt = db.prepare('UPDATE documents SET deleted_at = NULL WHERE id = ?');
+        stmt.run(id);
+    }
+
+    getTrashedDocuments(): Document[] {
+        const stmt = db.prepare(`
+            SELECT d.*, p.title AS project_title
+            FROM documents d
+            LEFT JOIN projects p ON p.id = d.project_id
+            WHERE d.deleted_at IS NOT NULL
+            ORDER BY d.deleted_at DESC
+        `);
+        return stmt.all() as Document[];
     }
 
     // ==================== Metadata CRUD ====================
@@ -359,16 +382,18 @@ class DatabaseService {
     searchDocuments(query: string): Document[] {
 
         const stmt = db.prepare(`
-            SELECT DISTINCT d.* 
+            SELECT DISTINCT d.*
             FROM documents d
             LEFT JOIN document_metadata dm ON d.id = dm.document_id
-            WHERE 
+            WHERE d.deleted_at IS NULL
+              AND (
                 d.title LIKE ? OR
                 d.source_content LIKE ? OR
                 d.target_content LIKE ? OR
                 dm.title LIKE ? OR
                 dm.source LIKE ? OR
                 dm.keywords LIKE ?
+              )
             ORDER BY d.updated_at DESC
         `);
 
@@ -400,6 +425,7 @@ class DatabaseService {
       FROM sentence_alignments
       GROUP BY document_id
     ) sa ON sa.document_id = d.id
+    WHERE d.deleted_at IS NULL
   `).get();
 
         const documents = db.prepare(`
@@ -432,6 +458,7 @@ class DatabaseService {
       FROM sentence_alignments
       GROUP BY document_id
     ) sa ON sa.document_id = d.id
+    WHERE d.deleted_at IS NULL
     ORDER BY d.updated_at DESC
   `).all();
 

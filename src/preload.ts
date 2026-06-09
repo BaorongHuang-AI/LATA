@@ -72,6 +72,18 @@ contextBridge.exposeInMainWorld('api', {
          return ipcRenderer.invoke('db:deleteDocument', id);
     },
 
+    permanentDeleteDocument(id: number): Promise<void> {
+        return ipcRenderer.invoke('db:permanentDeleteDocument', id);
+    },
+
+    restoreDocument(id: number): Promise<void> {
+        return ipcRenderer.invoke('db:restoreDocument', id);
+    },
+
+    getTrashedDocuments(): Promise<Document[]> {
+        return ipcRenderer.invoke('db:getTrashedDocuments');
+    },
+
     // ==================== Metadata ====================
 
      upsertMetadata(metadata: Omit<DocumentMetadata, 'id' | 'created_at' | 'updated_at'>): Promise<void> {
@@ -230,6 +242,14 @@ contextBridge.exposeInMainWorld('api', {
             ipcRenderer.invoke('save-excel-alignment', data),
         saveProjectExcel: (payload: { projectTitle: string; documents: import("../src/ipc/excelExport").ExcelAlignmentData[] }) =>
             ipcRenderer.invoke('save-project-excel', payload),
+
+        // ================= DATABASE EXPORT/IMPORT =================
+        exportDatabase: () =>
+            ipcRenderer.invoke('export-database'),
+        importDatabase: () =>
+            ipcRenderer.invoke('import-database'),
+        restartApp: () =>
+            ipcRenderer.invoke('restart-app'),
 
     /**
      * prompts

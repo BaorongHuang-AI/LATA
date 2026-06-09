@@ -98,6 +98,17 @@ export const initProjectSchema = () => {
             CREATE INDEX IF NOT EXISTS idx_documents_project ON documents(project_id);
         `);
     }
+
+    // ==================== Add deleted_at to documents table ====================
+    const columns2 = db.pragma("table_info(documents)");
+    const hasDeletedAt = columns2.some((col: any) => col.name === 'deleted_at');
+
+    if (!hasDeletedAt) {
+        db.exec(`
+            ALTER TABLE documents ADD COLUMN deleted_at DATETIME;
+            CREATE INDEX IF NOT EXISTS idx_documents_deleted ON documents(deleted_at);
+        `);
+    }
 };
 
 export default initProjectSchema;

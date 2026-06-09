@@ -11,6 +11,7 @@ export interface Document {
     target_content?: string;
     status?: 'draft' | 'in_progress' | 'completed' | 'archived';
     project_id?: number | null;
+    deleted_at?: string | null;
 }
 
 export interface DocumentMetadata {

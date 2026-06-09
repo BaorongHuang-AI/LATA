@@ -120,8 +120,8 @@ const HomePage = () => {
 
     const handleDeleteDocument = (doc: AlignedDocument) => {
         Modal.confirm({
-            title: "Delete Align Task",
-            content: `Are you sure you want to delete "${doc.title}"? This action cannot be undone.`,
+            title: "Move to Trash",
+            content: `Are you sure you want to move "${doc.title}" to trash? You can restore it from the Trash page later.`,
             okText: "Delete",
             okType: "danger",
             cancelText: "Cancel",

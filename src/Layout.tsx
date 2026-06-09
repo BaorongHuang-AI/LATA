@@ -20,6 +20,8 @@ import DocumentViewerWrapper from "./viewer/DocumentViewerWrapper";
 import ProjectsPage from "./projects/ProjectsPage";
 import CorpusAnalysisPage from "./corpus/CorpusAnalysisPage";
 import CorpusSearchPage from "./corpus/CorpusSearchPage";
+import TrashboxPage from "./trash/TrashboxPage";
+import DatabaseManagerPage from "./database/DatabaseManagerPage";
 // import ParaAlignmentPage from "./onlinealign/ParaAlignmentPage";
 
 
@@ -65,6 +67,8 @@ const Layout = () => {
                     <Route path="/multimodal" element={<MultimodalPage />} />
                     <Route path="/corpusanalysis" element={<CorpusAnalysisPage />} />
                     <Route path="/corpussearch" element={<CorpusSearchPage />} />
+                    <Route path="/trash" element={<TrashboxPage />} />
+                    <Route path="/database" element={<DatabaseManagerPage />} />
                 </Routes>
             </div>
         </div>

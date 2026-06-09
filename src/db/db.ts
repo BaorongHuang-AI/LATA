@@ -26,6 +26,18 @@ export const db = new Database(
     dbPath
     // path.join( 'experiment.sqlite')
 );
+
+export function getDbPath(): string {
+    return dbPath;
+}
+
+export function closeDb(): void {
+    try {
+        db.close();
+    } catch {
+        // Already closed or error — ignore
+    }
+}
 //
 // const sqlFilePath = path.join(app.getAppPath(), "sql", "main.sql");
 // console.log("sqlfile path", sqlFilePath);
