@@ -25,7 +25,7 @@ export const Sidebar = ({ collapsed, setCollapsed }: { collapsed: boolean, setCo
         { name: "Techniques", path: "/tagmanager", icon: "🏷️" },
         { name: "Database", path: "/database", icon: "🗄️" },
         // { name: "Multimodal", path: "/multimodal", icon: "🖼️" },
-        { name: "LLMs", path: "/settings", icon: "⚙️" },
+        { name: "LLM Settings", path: "/settings", icon: "⚙️" },
         { name: "Trash", path: "/trash", icon: "🗑️" },
     ];
 
