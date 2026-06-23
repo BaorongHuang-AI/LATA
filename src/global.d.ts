@@ -469,6 +469,35 @@ declare global {
             searchCorpusSegments(params: import("./types/corpus").CorpusSearchRequest): Promise<import("./types/corpus").CorpusSearchResult[]>;
             getCorpusMetadataOptions(documentIds: number[]): Promise<import("./types/corpus").CorpusMetadataOptions>;
 
+            // ==================== Terminology Extraction ====================
+            getTerminologySkills(): Promise<import("./types/terminology").TerminologySkill[]>;
+            saveTerminologySkill(skill: { name: string; system_prompt: string; user_prompt_template: string }): Promise<number>;
+            updateTerminologySkill(id: number, skill: { name?: string; system_prompt?: string; user_prompt_template?: string }): Promise<void>;
+            deleteTerminologySkill(id: number): Promise<void>;
+            getTerminologyExtractions(): Promise<import("./types/terminology").TerminologyExtraction[]>;
+            runTerminologyExtraction(payload: { documentIds: number[]; skillKey?: string; customPrompt?: string }): Promise<{
+                extraction: import("./types/terminology").TerminologyExtraction;
+                terms: import("./types/terminology").TerminologyTerm[];
+                segment_count: number;
+                truncated: boolean;
+                debug: {
+                    model: string;
+                    promptTokens?: number;
+                    completionTokens?: number;
+                    totalTokens?: number;
+                    estimatedPromptTokens: number;
+                    rawResponseLength: number;
+                    truncated: boolean;
+                };
+            }>;
+            getTerminologyTerms(extractionId: number): Promise<import("./types/terminology").TerminologyTerm[]>;
+            addTerminologyTerm(extractionId: number, term: {
+                source_term: string; target_term: string; domain?: string;
+                priority?: 'high' | 'medium' | 'low'; context_source?: string; context_target?: string;
+            }): Promise<number>;
+            updateTerminologyTerm(id: number, data: Partial<import("./types/terminology").TerminologyTerm>): Promise<void>;
+            deleteTerminologyTerm(id: number): Promise<void>;
+
             // ==================== Database Export/Import ====================
             exportDatabase(): Promise<{ success: boolean; filePath?: string; sizeMB?: string; canceled?: boolean; error?: string }>;
             importDatabase(): Promise<{ success: boolean; backupPath?: string; canceled?: boolean; error?: string }>;

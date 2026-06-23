@@ -1,5 +1,5 @@
 import {db} from "./db";
-import {initProjectSchema} from "./projectSchema";
+import {initProjectSchema, initTerminologySchema} from "./projectSchema";
 //
 // const Database = require('better-sqlite3');
 // const path = require('path');
@@ -1811,6 +1811,44 @@ VALUES
   'You are a corpus analysis expert. Analyze the provided parallel text segments according to the user''s request. Be thorough, reference specific segment numbers, and organize findings clearly.',
   '{{custom_prompt}}\n\nAligned Segments:\n{{segments}}',
   NULL, 0.3, 4096
+),
+(
+  'terminology_extraction',
+  'Bilingual Terminology Extraction',
+  'You are a professional bilingual terminology extraction engine. Your task is to analyze aligned parallel text segments and extract significant bilingual term pairs.
+
+For each segment, identify key terms and their translations. Follow these rules:
+
+1. Focus on domain-specific terminology, named entities, technical terms, and culturally significant words. Skip common function words (articles, prepositions, conjunctions) and very general vocabulary.
+
+2. For each term pair, assign:
+   - domain: one of [general, legal, medical, technical, financial, academic, literary, other]
+   - priority: one of [high, medium, low] based on the term''s significance to the text''s subject matter
+
+3. Include the FULL sentence context from both source and target where the term appears. This is critical for the user to understand how the term is used.
+
+4. IMPORTANT: Treat singular and plural forms as the SAME term. If "contract" and "contracts" both appear, list only ONE entry with the canonical singular form, and note the variant in the context.
+
+5. Do NOT invent terms not present in the provided segments. Only extract terms that actually appear.
+
+6. Return ONLY valid JSON. The response must be a JSON object with a "terms" array.',
+  'Analyze the following aligned parallel corpus segments and extract bilingual term pairs. Include full sentence context for each term.
+
+Aligned Segments:
+{{segments}}
+
+Output a JSON object with a "terms" array where each entry has: source_term, target_term, domain, priority, context_source, context_target.',
+  NULL, 0.3, 4096
+),
+(
+  'terminology_extraction',
+  'Custom Extraction',
+  'You are a terminology extraction expert. Analyze the provided parallel text segments according to the user''s request. Extract bilingual term pairs with domain, priority, and full sentence context. Treat singular and plural forms as one term. Return ONLY valid JSON with a "terms" array.',
+  '{{custom_prompt}}
+
+Aligned Segments:
+{{segments}}',
+  NULL, 0.3, 4096
 );
 
 INSERT OR IGNORE INTO "translation_tags"
@@ -1832,5 +1870,8 @@ db.exec(schemaNew);
 
 // Initialize project schema
 initProjectSchema();
+
+// Initialize terminology extraction schema
+initTerminologySchema();
 
 // module.exports = db;

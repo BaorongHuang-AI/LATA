@@ -111,4 +111,48 @@ export const initProjectSchema = () => {
     }
 };
 
+// ==================== Terminology Extraction Schema ====================
+export const initTerminologySchema = () => {
+    const hasExtractions = db.pragma("table_info(terminology_extractions)");
+    if (!hasExtractions || hasExtractions.length === 0) {
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS terminology_extractions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                document_ids TEXT NOT NULL,
+                model_name TEXT,
+                token_usage TEXT,
+                result TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+    }
+    const hasTerms = db.pragma("table_info(terminology_terms)");
+    if (!hasTerms || hasTerms.length === 0) {
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS terminology_terms (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                extraction_id INTEGER NOT NULL,
+                source_term TEXT NOT NULL,
+                target_term TEXT NOT NULL,
+                domain TEXT,
+                priority TEXT CHECK(priority IN ('high','medium','low')),
+                context_source TEXT,
+                context_target TEXT,
+                variant_group TEXT,
+                is_llm_generated INTEGER DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (extraction_id) REFERENCES terminology_extractions(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_terminology_terms_extraction
+                ON terminology_terms(extraction_id);
+            CREATE INDEX IF NOT EXISTS idx_terminology_terms_domain
+                ON terminology_terms(domain);
+            CREATE INDEX IF NOT EXISTS idx_terminology_terms_priority
+                ON terminology_terms(priority);
+        `);
+    }
+};
+
 export default initProjectSchema;

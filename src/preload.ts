@@ -494,6 +494,28 @@ contextBridge.exposeInMainWorld('api', {
     getCorpusMetadataOptions: (documentIds: number[]) =>
         ipcRenderer.invoke("corpus:getMetadataOptions", documentIds),
 
+    // ================= TERMINOLOGY EXTRACTION =================
+    getTerminologySkills: () => ipcRenderer.invoke("terminology:getSkills"),
+    saveTerminologySkill: (skill: { name: string; system_prompt: string; user_prompt_template: string }) =>
+        ipcRenderer.invoke("terminology:saveSkill", skill),
+    updateTerminologySkill: (id: number, skill: { name?: string; system_prompt?: string; user_prompt_template?: string }) =>
+        ipcRenderer.invoke("terminology:updateSkill", id, skill),
+    deleteTerminologySkill: (id: number) =>
+        ipcRenderer.invoke("terminology:deleteSkill", id),
+    getTerminologyExtractions: () => ipcRenderer.invoke("terminology:getExtractions"),
+    runTerminologyExtraction: (payload: { documentIds: number[]; skillKey?: string; customPrompt?: string }) =>
+        ipcRenderer.invoke("terminology:runExtraction", payload),
+    getTerminologyTerms: (extractionId: number) =>
+        ipcRenderer.invoke("terminology:getTerms", extractionId),
+    addTerminologyTerm: (extractionId: number, term: {
+        source_term: string; target_term: string; domain?: string;
+        priority?: 'high' | 'medium' | 'low'; context_source?: string; context_target?: string;
+    }) => ipcRenderer.invoke("terminology:addTerm", extractionId, term),
+    updateTerminologyTerm: (id: number, data: Partial<import("./types/terminology").TerminologyTerm>) =>
+        ipcRenderer.invoke("terminology:updateTerm", id, data),
+    deleteTerminologyTerm: (id: number) =>
+        ipcRenderer.invoke("terminology:deleteTerm", id),
+
     // ================= FINISHED =================
     onAlignmentFinished: (callback: (data: any) => void) => {
         if (finishedListener) {
