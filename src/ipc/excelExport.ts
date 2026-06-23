@@ -16,6 +16,7 @@ export interface ExcelAlignmentData {
 
 // ---- helpers ----
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function parseJson(val: unknown): string[] {
   if (!val) return [];
   if (Array.isArray(val)) return val.map(String);
@@ -353,6 +354,165 @@ export async function generateProjectWorkbook(
 function sanitizeSheetName(name: string): string {
   // Excel sheet names: max 31 chars, cannot contain [ ] : * ? / \
   return name
+    // eslint-disable-next-line no-useless-escape
     .replace(/[\[\]:*?/\\]/g, "_")
     .substring(0, 31);
+}
+
+// ==================== Terminology Export ====================
+
+const PRIORITY_COLORS: Record<string, string> = {
+  high:   "FFEF4444",  // red-500
+  medium: "FFF59E0B",  // amber-500
+  low:    "FF10B981",  // emerald-500
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  verified:   "FF10B981",  // emerald
+  rejected:   "FFEF4444",  // red
+  unverified: "FF9CA3AF",  // gray-400
+};
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export async function generateTerminologyWorkbook(
+  project: any,
+  terms: any[],
+  documents: any[],
+): Promise<ExcelJS.Workbook> {
+/* eslint-enable @typescript-eslint/no-explicit-any */
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "LATA";
+  workbook.created = new Date();
+
+  const sheet = workbook.addWorksheet(sanitizeSheetName("Terms"), {
+    properties: { tabColor: { argb: "FF059669" } }, // emerald-600
+  });
+
+  // -- column widths --
+  sheet.columns = [
+    { width: 22 },  // A: Source Term
+    { width: 22 },  // B: Target Term
+    { width: 14 },  // C: Domain
+    { width: 10 },  // D: Priority
+    { width: 40 },  // E: Context (Source)
+    { width: 40 },  // F: Context (Target)
+    { width: 14 },  // G: Verification Status
+    { width: 16 },  // H: Verified By
+    { width: 30 },  // I: Reviewer Notes
+  ];
+
+  let row = 1;
+
+  // ---- metadata header ----
+  sheet.mergeCells(`A${row}:I${row}`);
+  const titleCell = sheet.getCell(`A${row}`);
+  titleCell.value = `Terminology Export — ${project.title || "Untitled Project"}`;
+  titleCell.fill = HEADER_FILL;
+  titleCell.font = HEADER_FONT;
+  titleCell.alignment = { horizontal: "center", vertical: "middle" };
+  titleCell.border = BORDER;
+  row++;
+  sheet.getRow(row).height = 6;
+  row++;
+
+  // ---- metadata fields ----
+  const metaFields: [string, string][] = [
+    ["Project Title", project.title || ""],
+    ["Status", project.status || "draft"],
+    ["Source", project.source || ""],
+    ["Extractor", project.extractor || ""],
+    ["Reviewer", project.reviewer || ""],
+    ["Document Count", String(documents.length)],
+    ["Term Count", String(terms.length)],
+    ["Export Date", new Date().toISOString().slice(0, 10)],
+  ];
+
+  for (const [label, value] of metaFields) {
+    if (!label || !value) {
+      // Still show the label row even if value empty
+      if (!value) continue;
+    }
+    sheet.mergeCells(`A${row}:B${row}`);
+    const labelCell = sheet.getCell(`A${row}`);
+    labelCell.value = label;
+    labelCell.fill = LABEL_FILL;
+    labelCell.font = LABEL_FONT;
+    labelCell.border = BORDER;
+
+    sheet.mergeCells(`C${row}:I${row}`);
+    const valueCell = sheet.getCell(`C${row}`);
+    valueCell.value = value;
+    valueCell.font = VALUE_FONT;
+    valueCell.border = BORDER;
+
+    row++;
+  }
+
+  // ---- blank separator ----
+  sheet.getRow(row).height = 8;
+  row++;
+
+  // ---- column headers ----
+  const colHeaders = [
+    "Source Term", "Target Term", "Domain", "Priority",
+    "Context (Source)", "Context (Target)",
+    "Verification Status", "Verified By", "Reviewer Notes",
+  ];
+  for (let c = 0; c < colHeaders.length; c++) {
+    const cell = sheet.getCell(row, c + 1);
+    cell.value = colHeaders[c];
+    cell.fill = COL_HEADER_FILL;
+    cell.font = COL_HEADER_FONT;
+    cell.alignment = { horizontal: "center", vertical: "middle", wrapText: true };
+    cell.border = BORDER;
+  }
+  const headerRowNum = row;
+  row++;
+
+  // ---- data rows ----
+  for (let i = 0; i < terms.length; i++) {
+    const t = terms[i];
+    const isEven = i % 2 === 0;
+    const rowFill: ExcelJS.Fill = isEven
+      ? { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFFFF" } }
+      : ALT_ROW_FILL;
+
+    const values = [
+      t.source_term || "",
+      t.target_term || "",
+      t.domain || "",
+      t.priority || "",
+      t.context_source || "",
+      t.context_target || "",
+      t.verification_status || "unverified",
+      t.verified_by || "",
+      t.reviewer_notes || "",
+    ];
+
+    for (let c = 0; c < values.length; c++) {
+      const cell = sheet.getCell(row, c + 1);
+      cell.value = values[c];
+      cell.fill = rowFill;
+      cell.font = { size: 10, color: { argb: "FF1F2937" } };
+      cell.alignment = { vertical: "top", wrapText: true };
+      cell.border = BORDER;
+    }
+
+    // Color-code priority
+    const priorityCell = sheet.getCell(row, 4);
+    const priColor = PRIORITY_COLORS[t.priority] || "FF1F2937";
+    priorityCell.font = { size: 10, bold: true, color: { argb: priColor } };
+
+    // Color-code verification status
+    const statusCell = sheet.getCell(row, 7);
+    const statColor = STATUS_COLORS[t.verification_status] || "FF9CA3AF";
+    statusCell.font = { size: 10, bold: true, color: { argb: statColor } };
+
+    row++;
+  }
+
+  // ---- freeze pane ----
+  sheet.views = [{ state: "frozen", ySplit: headerRowNum }];
+
+  return workbook;
 }

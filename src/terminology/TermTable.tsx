@@ -268,6 +268,17 @@ const TermTable: React.FC<TermTableProps> = ({
       },
     },
     {
+      title: "Verified",
+      dataIndex: "verification_status",
+      key: "verification_status",
+      width: 80,
+      render: (val: string | undefined) => {
+        if (val === 'verified') return <Tag color="green" className="text-[10px] leading-none">✓ Verified</Tag>;
+        if (val === 'rejected') return <Tag color="red" className="text-[10px] leading-none">✗ Rejected</Tag>;
+        return <Tag color="default" className="text-[10px] leading-none">Unverified</Tag>;
+      },
+    },
+    {
       title: "",
       key: "actions",
       width: 80,

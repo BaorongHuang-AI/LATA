@@ -1,9 +1,11 @@
-import { ipcMain } from "electron";
+import { ipcMain, dialog } from "electron";
+import * as fs from "fs";
 import terminologyService from "../db/terminologyService";
 import corpusService from "../db/corpusService";
 import { sendChatCompletion } from "../utils/sendChatCompletion";
+import { generateTerminologyWorkbook } from "./excelExport";
 import type { ChatMessage } from "../types/llminterfaces";
-import type { TermEntry, TerminologyTerm } from "../types/terminology";
+import type { TermEntry, TerminologyTerm, TerminologyProject } from "../types/terminology";
 
 function serializeSegments(segments: Array<{ source_text: string; target_text: string }>, maxSegments = 200): string {
   const limited = segments.slice(0, maxSegments);
@@ -12,20 +14,14 @@ function serializeSegments(segments: Array<{ source_text: string; target_text: s
     .join("\n\n");
 }
 
-/**
- * Try to extract a JSON object/array from a string that may be wrapped in
- * markdown code fences, have extra text before/after, or contain trailing commas.
- */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function extractJSON(raw: string): any {
-  // 1. Try direct parse first
   try {
     return JSON.parse(raw);
   } catch {
     // Direct parse failed — try extraction methods below
   }
 
-  // 2. Try to find JSON inside ```json ... ``` code fences
   const fenceMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (fenceMatch) {
     try {
@@ -35,7 +31,6 @@ function extractJSON(raw: string): any {
     }
   }
 
-  // 3. Try to find the outermost { ... } or [ ... ]
   const objMatch = raw.match(/\{[\s\S]*\}/);
   if (objMatch) {
     try {
@@ -54,7 +49,6 @@ function extractJSON(raw: string): any {
     }
   }
 
-  // 4. Last resort: try removing trailing commas and parse
   try {
     const cleaned = raw.replace(/,\s*([}\]])/g, '$1');
     const objM = cleaned.match(/\{[\s\S]*\}/);
@@ -65,6 +59,49 @@ function extractJSON(raw: string): any {
 
   throw new Error("Could not extract valid JSON from LLM response");
 }
+
+// ==================== Projects ====================
+
+ipcMain.handle("terminology:createProject", async (_, data: {
+  title: string; description?: string; source?: string;
+  extractor?: string; reviewer?: string; status?: string;
+}) => {
+  return terminologyService.createProject(data);
+});
+
+ipcMain.handle("terminology:updateProject", async (_, id: number, data: Partial<TerminologyProject>) => {
+  terminologyService.updateProject(id, data);
+});
+
+ipcMain.handle("terminology:deleteProject", async (_, id: number) => {
+  terminologyService.deleteProject(id);
+});
+
+ipcMain.handle("terminology:getProject", async (_, id: number) => {
+  return terminologyService.getProject(id);
+});
+
+ipcMain.handle("terminology:getAllProjects", async () => {
+  return terminologyService.getAllProjects();
+});
+
+// ==================== Project-Document Links ====================
+
+ipcMain.handle("terminology:addProjectDocument", async (_, projectId: number, documentId: number) => {
+  terminologyService.addProjectDocument(projectId, documentId);
+});
+
+ipcMain.handle("terminology:removeProjectDocument", async (_, projectId: number, documentId: number) => {
+  terminologyService.removeProjectDocument(projectId, documentId);
+});
+
+ipcMain.handle("terminology:setProjectDocuments", async (_, projectId: number, documentIds: number[]) => {
+  terminologyService.setProjectDocuments(projectId, documentIds);
+});
+
+ipcMain.handle("terminology:getProjectDocuments", async (_, projectId: number) => {
+  return terminologyService.getProjectDocuments(projectId);
+});
 
 // ==================== Skills ====================
 
@@ -90,8 +127,16 @@ ipcMain.handle("terminology:getExtractions", async () => {
   return terminologyService.getExtractions();
 });
 
+ipcMain.handle("terminology:getExtractionsByProject", async (_, projectId: number) => {
+  return terminologyService.getExtractionsByProject(projectId);
+});
+
 ipcMain.handle("terminology:getTerms", async (_, extractionId: number) => {
   return terminologyService.getTerms(extractionId);
+});
+
+ipcMain.handle("terminology:getProjectTerms", async (_, projectId: number) => {
+  return terminologyService.getAllProjectTerms(projectId);
 });
 
 ipcMain.handle("terminology:addTerm", async (_, extractionId: number, term: {
@@ -113,21 +158,64 @@ ipcMain.handle("terminology:deleteTerm", async (_, id: number) => {
   terminologyService.deleteTerm(id);
 });
 
+// ==================== Verification ====================
+
+ipcMain.handle("terminology:verifyTerm", async (_, id: number, status: 'verified' | 'rejected', verifiedBy: string, notes?: string) => {
+  terminologyService.verifyTerm(id, status, verifiedBy, notes);
+});
+
+ipcMain.handle("terminology:batchVerifyTerms", async (_, ids: number[], status: 'verified' | 'rejected', verifiedBy: string) => {
+  terminologyService.batchVerifyTerms(ids, status, verifiedBy);
+});
+
+// ==================== Export ====================
+
+ipcMain.handle("terminology:exportProjectExcel", async (_, projectId: number) => {
+  const project = terminologyService.getProject(projectId);
+  const terms = terminologyService.getAllProjectTerms(projectId);
+  const docs = terminologyService.getProjectDocuments(projectId);
+
+  if (terms.length === 0) {
+    throw new Error("No terms to export. Run an extraction first.");
+  }
+
+  const result = await dialog.showSaveDialog({
+    title: "Export Terminology to Excel",
+    defaultPath: `${project.title.replace(/[^a-zA-Z0-9]/g, '_')}_terms.xlsx`,
+    filters: [{ name: "Excel Files", extensions: ["xlsx"] }],
+  });
+
+  if (result.canceled || !result.filePath) {
+    return { success: false, canceled: true };
+  }
+
+  try {
+    const workbook = await generateTerminologyWorkbook(project, terms, docs);
+    const buffer = await workbook.xlsx.writeBuffer();
+    fs.writeFileSync(result.filePath, buffer as unknown as Buffer);
+    return { success: true, filePath: result.filePath };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+});
+
 // ==================== Run Extraction ====================
 
 ipcMain.handle("terminology:runExtraction", async (_, payload: {
+  projectId?: number;
   documentIds: number[];
   skillKey?: string;
   customPrompt?: string;
 }) => {
-  const { documentIds, skillKey, customPrompt } = payload;
+  const { documentIds, skillKey, customPrompt, projectId } = payload;
 
-  // Collect debug info throughout the handler
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const debug: Record<string, any> = {
     timestamp: new Date().toISOString(),
     documentIds,
     skillKey,
+    projectId,
     phases: {},
   };
 
@@ -144,7 +232,6 @@ ipcMain.handle("terminology:runExtraction", async (_, payload: {
     if (skillKey) {
       const found = skills.find((s) => s.key === skillKey);
       if (!found) {
-        // If the requested skill doesn't exist, fall back to the first one
         skill = skills[0];
         debug.phases.loadSkills.warning = `Skill "${skillKey}" not found, using default: "${skill.key}"`;
       } else {
@@ -192,7 +279,6 @@ ipcMain.handle("terminology:runExtraction", async (_, payload: {
     userPrompt = skill.user_prompt_template.replace("{{segments}}", segmentsStr);
   }
 
-  // Estimate token count (rough: ~4 chars per token for English, ~2 for CJK)
   const promptCharCount = systemPrompt.length + userPrompt.length;
   const estimatedPromptTokens = Math.ceil(promptCharCount / 3);
 
@@ -205,8 +291,6 @@ ipcMain.handle("terminology:runExtraction", async (_, payload: {
   };
 
   // ---- Phase 4: LLM call ----
-  // Use 16384 maxTokens to leave room for reasoning models (qwen3, deepseek-r1, etc.)
-  // that consume tokens for internal reasoning before producing text output.
   const MAX_TOKENS = 16384;
   const messages: ChatMessage[] = [
     { role: "system", content: systemPrompt },
@@ -233,7 +317,6 @@ ipcMain.handle("terminology:runExtraction", async (_, payload: {
       error: e.message,
       model: "(failed before response)",
     };
-    // Re-throw with debug context appended
     const debugSummary = JSON.stringify(debug, null, 2);
     throw new Error(`${e.message}\n\n[DEBUG INFO]\n${debugSummary}`);
   }
@@ -255,8 +338,8 @@ ipcMain.handle("terminology:runExtraction", async (_, payload: {
       rawResponsePreview: response.content.slice(0, 1000),
       rawResponseLength: response.content.length,
     };
-    // Save the raw response so the user can inspect it
     const extractionId = terminologyService.saveExtraction(
+      projectId || null,
       documentIds,
       response.model,
       response.content,
@@ -273,9 +356,8 @@ ipcMain.handle("terminology:runExtraction", async (_, payload: {
   }
 
   // ---- Phase 6: Extract and validate terms ----
-  let terms: TermEntry[] = [];
+  const terms: TermEntry[] = [];
 
-  // The LLM might return { terms: [...] } or a flat array
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let rawTerms: any[];
   if (parsed.terms && Array.isArray(parsed.terms)) {
@@ -283,11 +365,10 @@ ipcMain.handle("terminology:runExtraction", async (_, payload: {
   } else if (Array.isArray(parsed)) {
     rawTerms = parsed;
   } else {
-    // Try to find any array in the parsed object
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const arrays = Object.values(parsed).filter((v: any) => Array.isArray(v));
     if (arrays.length > 0) {
-      rawTerms = arrays[0] as any[];
+      rawTerms = arrays[0] as unknown[];
     } else {
       debug.phases.extractTerms = {
         error: "No array found in parsed response",
@@ -307,7 +388,7 @@ ipcMain.handle("terminology:runExtraction", async (_, payload: {
     if (!t || typeof t !== "object") continue;
     const sourceTerm = String(t.source_term || t.sourceTerm || t.source || "").trim();
     const targetTerm = String(t.target_term || t.targetTerm || t.target || "").trim();
-    if (!sourceTerm || !targetTerm) continue; // skip entries missing essential fields
+    if (!sourceTerm || !targetTerm) continue;
     terms.push({
       source_term: sourceTerm,
       target_term: targetTerm,
@@ -340,6 +421,7 @@ ipcMain.handle("terminology:runExtraction", async (_, payload: {
     : null;
 
   const extractionId = terminologyService.saveExtraction(
+    projectId || null,
     documentIds,
     response.model,
     response.content,
@@ -363,6 +445,13 @@ ipcMain.handle("terminology:runExtraction", async (_, payload: {
   }
 
   const extraction = terminologyService.getExtraction(extractionId);
+
+  // Auto-update project status to 'extracted' if a project is linked
+  if (projectId) {
+    try {
+      terminologyService.updateProject(projectId, { status: 'extracted' });
+    } catch { /* ignore — status update is non-critical */ }
+  }
 
   debug.phases.save = {
     extractionId,

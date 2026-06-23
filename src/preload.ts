@@ -516,6 +516,40 @@ contextBridge.exposeInMainWorld('api', {
     deleteTerminologyTerm: (id: number) =>
         ipcRenderer.invoke("terminology:deleteTerm", id),
 
+    // ================= TERMINOLOGY PROJECTS =================
+    createTerminologyProject: (data: { title: string; description?: string; source?: string; extractor?: string; reviewer?: string; status?: string }) =>
+        ipcRenderer.invoke("terminology:createProject", data),
+    updateTerminologyProject: (id: number, data: Partial<import("./types/terminology").TerminologyProject>) =>
+        ipcRenderer.invoke("terminology:updateProject", id, data),
+    deleteTerminologyProject: (id: number) =>
+        ipcRenderer.invoke("terminology:deleteProject", id),
+    getTerminologyProject: (id: number) =>
+        ipcRenderer.invoke("terminology:getProject", id),
+    getAllTerminologyProjects: () =>
+        ipcRenderer.invoke("terminology:getAllProjects"),
+    addProjectDocument: (projectId: number, documentId: number) =>
+        ipcRenderer.invoke("terminology:addProjectDocument", projectId, documentId),
+    removeProjectDocument: (projectId: number, documentId: number) =>
+        ipcRenderer.invoke("terminology:removeProjectDocument", projectId, documentId),
+    setProjectDocuments: (projectId: number, documentIds: number[]) =>
+        ipcRenderer.invoke("terminology:setProjectDocuments", projectId, documentIds),
+    getProjectDocuments: (projectId: number) =>
+        ipcRenderer.invoke("terminology:getProjectDocuments", projectId),
+    getExtractionsByProject: (projectId: number) =>
+        ipcRenderer.invoke("terminology:getExtractionsByProject", projectId),
+    getProjectTerms: (projectId: number) =>
+        ipcRenderer.invoke("terminology:getProjectTerms", projectId),
+
+    // ================= TERMINOLOGY VERIFICATION =================
+    verifyTerm: (id: number, status: 'verified' | 'rejected', verifiedBy: string, notes?: string) =>
+        ipcRenderer.invoke("terminology:verifyTerm", id, status, verifiedBy, notes),
+    batchVerifyTerms: (ids: number[], status: 'verified' | 'rejected', verifiedBy: string) =>
+        ipcRenderer.invoke("terminology:batchVerifyTerms", ids, status, verifiedBy),
+
+    // ================= TERMINOLOGY EXPORT =================
+    exportTerminologyProjectExcel: (projectId: number) =>
+        ipcRenderer.invoke("terminology:exportProjectExcel", projectId),
+
     // ================= FINISHED =================
     onAlignmentFinished: (callback: (data: any) => void) => {
         if (finishedListener) {

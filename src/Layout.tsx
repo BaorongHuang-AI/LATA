@@ -20,7 +20,8 @@ import DocumentViewerWrapper from "./viewer/DocumentViewerWrapper";
 import ProjectsPage from "./projects/ProjectsPage";
 import CorpusAnalysisPage from "./corpus/CorpusAnalysisPage";
 import CorpusSearchPage from "./corpus/CorpusSearchPage";
-import TerminologyExtractionPage from "./terminology/TerminologyExtractionPage";
+import TerminologyProjectsPage from "./terminology/TerminologyProjectsPage";
+import TerminologyProjectDetail from "./terminology/TerminologyProjectDetail";
 import TrashboxPage from "./trash/TrashboxPage";
 import DatabaseManagerPage from "./database/DatabaseManagerPage";
 // import ParaAlignmentPage from "./onlinealign/ParaAlignmentPage";
@@ -68,7 +69,8 @@ const Layout = () => {
                     <Route path="/multimodal" element={<MultimodalPage />} />
                     <Route path="/corpusanalysis" element={<CorpusAnalysisPage />} />
                     <Route path="/corpussearch" element={<CorpusSearchPage />} />
-                    <Route path="/terminology" element={<TerminologyExtractionPage />} />
+                    <Route path="/terminology" element={<TerminologyProjectsPage />} />
+                    <Route path="/terminology/:projectId" element={<TerminologyProjectDetail />} />
                     <Route path="/trash" element={<TrashboxPage />} />
                     <Route path="/database" element={<DatabaseManagerPage />} />
                 </Routes>

@@ -155,4 +155,133 @@ export const initTerminologySchema = () => {
     }
 };
 
+// ==================== Terminology Projects Schema ====================
+export const initTerminologyProjectSchema = () => {
+    // -- terminology_projects table --
+    const hasProjects = db.pragma("table_info(terminology_projects)");
+    if (!hasProjects || hasProjects.length === 0) {
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS terminology_projects (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                description TEXT,
+                source TEXT,
+                extractor TEXT,
+                reviewer TEXT,
+                status TEXT DEFAULT 'draft',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_term_projects_status
+                ON terminology_projects(status);
+        `);
+    }
+
+    // -- terminology_project_documents (many-to-many) --
+    const hasProjDocs = db.pragma("table_info(terminology_project_documents)");
+    if (!hasProjDocs || hasProjDocs.length === 0) {
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS terminology_project_documents (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                project_id INTEGER NOT NULL,
+                document_id INTEGER NOT NULL,
+                UNIQUE(project_id, document_id),
+                FOREIGN KEY (project_id) REFERENCES terminology_projects(id) ON DELETE CASCADE,
+                FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_term_proj_docs_project
+                ON terminology_project_documents(project_id);
+            CREATE INDEX IF NOT EXISTS idx_term_proj_docs_document
+                ON terminology_project_documents(document_id);
+        `);
+    }
+
+    // -- Add project_id to terminology_extractions --
+    const extrCols = db.pragma("table_info(terminology_extractions)");
+    const hasProjIdOnExtr = extrCols.some((col: any) => col.name === 'project_id');
+    if (!hasProjIdOnExtr) {
+        db.exec(`ALTER TABLE terminology_extractions ADD COLUMN project_id INTEGER REFERENCES terminology_projects(id) ON DELETE SET NULL`);
+        db.exec(`CREATE INDEX IF NOT EXISTS idx_term_extractions_project ON terminology_extractions(project_id)`);
+    }
+
+    // -- Add verification fields to terminology_terms --
+    const termCols = db.pragma("table_info(terminology_terms)");
+    const hasVerStatus = termCols.some((col: any) => col.name === 'verification_status');
+    if (!hasVerStatus) {
+        db.exec(`ALTER TABLE terminology_terms ADD COLUMN verification_status TEXT DEFAULT 'unverified'`);
+    }
+    const hasVerifiedBy = termCols.some((col: any) => col.name === 'verified_by');
+    if (!hasVerifiedBy) {
+        db.exec(`ALTER TABLE terminology_terms ADD COLUMN verified_by TEXT`);
+    }
+    const hasVerifiedAt = termCols.some((col: any) => col.name === 'verified_at');
+    if (!hasVerifiedAt) {
+        db.exec(`ALTER TABLE terminology_terms ADD COLUMN verified_at DATETIME`);
+    }
+    const hasReviewerNotes = termCols.some((col: any) => col.name === 'reviewer_notes');
+    if (!hasReviewerNotes) {
+        db.exec(`ALTER TABLE terminology_terms ADD COLUMN reviewer_notes TEXT`);
+    }
+
+    // -- Repair alignment stats (fill NULL source_count / target_count) --
+    const sentCols = db.pragma("table_info(sentence_alignments)");
+    const hasSrcCount = sentCols.some((col: any) => col.name === 'source_count');
+    const hasTgtCount = sentCols.some((col: any) => col.name === 'target_count');
+
+    if (hasSrcCount && hasTgtCount) {
+        // Check if any rows have NULL counts
+        const nullCount = db.prepare(`
+            SELECT COUNT(*) as cnt FROM sentence_alignments
+            WHERE source_count IS NULL OR target_count IS NULL
+        `).get() as { cnt: number } | undefined;
+
+        if (nullCount && nullCount.cnt > 0) {
+            // Parse JSON arrays in JS and update counts
+            const rows = db.prepare(`
+                SELECT id, source_sentence_keys, target_sentence_keys
+                FROM sentence_alignments
+                WHERE source_count IS NULL OR target_count IS NULL
+            `).all() as Array<{
+                id: number;
+                source_sentence_keys: string | null;
+                target_sentence_keys: string | null;
+            }>;
+
+            const updateStmt = db.prepare(`
+                UPDATE sentence_alignments
+                SET source_count = ?, target_count = ?
+                WHERE id = ?
+            `);
+
+            const fixCount = db.transaction(() => {
+                let fixed = 0;
+                for (const row of rows) {
+                    let srcCount = 0;
+                    let tgtCount = 0;
+                    try {
+                        if (row.source_sentence_keys) {
+                            const arr = JSON.parse(row.source_sentence_keys);
+                            srcCount = Array.isArray(arr) ? arr.length : 0;
+                        }
+                    } catch { srcCount = 0; }
+                    try {
+                        if (row.target_sentence_keys) {
+                            const arr = JSON.parse(row.target_sentence_keys);
+                            tgtCount = Array.isArray(arr) ? arr.length : 0;
+                        }
+                    } catch { tgtCount = 0; }
+                    updateStmt.run(srcCount, tgtCount, row.id);
+                    fixed++;
+                }
+                return fixed;
+            });
+
+            const fixed = fixCount();
+            console.log(`[migration] Repaired alignment stats: ${fixed} rows updated`);
+        }
+    }
+};
+
 export default initProjectSchema;

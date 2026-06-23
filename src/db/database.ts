@@ -1,5 +1,5 @@
 import {db} from "./db";
-import {initProjectSchema, initTerminologySchema} from "./projectSchema";
+import {initProjectSchema, initTerminologySchema, initTerminologyProjectSchema} from "./projectSchema";
 //
 // const Database = require('better-sqlite3');
 // const path = require('path');
@@ -1873,5 +1873,8 @@ initProjectSchema();
 
 // Initialize terminology extraction schema
 initTerminologySchema();
+
+// Initialize terminology project schema
+initTerminologyProjectSchema();
 
 // module.exports = db;

@@ -475,7 +475,7 @@ declare global {
             updateTerminologySkill(id: number, skill: { name?: string; system_prompt?: string; user_prompt_template?: string }): Promise<void>;
             deleteTerminologySkill(id: number): Promise<void>;
             getTerminologyExtractions(): Promise<import("./types/terminology").TerminologyExtraction[]>;
-            runTerminologyExtraction(payload: { documentIds: number[]; skillKey?: string; customPrompt?: string }): Promise<{
+            runTerminologyExtraction(payload: { projectId?: number; documentIds: number[]; skillKey?: string; customPrompt?: string }): Promise<{
                 extraction: import("./types/terminology").TerminologyExtraction;
                 terms: import("./types/terminology").TerminologyTerm[];
                 segment_count: number;
@@ -497,6 +497,26 @@ declare global {
             }): Promise<number>;
             updateTerminologyTerm(id: number, data: Partial<import("./types/terminology").TerminologyTerm>): Promise<void>;
             deleteTerminologyTerm(id: number): Promise<void>;
+
+            // ==================== Terminology Projects ====================
+            createTerminologyProject(data: { title: string; description?: string; source?: string; extractor?: string; reviewer?: string; status?: string }): Promise<number>;
+            updateTerminologyProject(id: number, data: Partial<import("./types/terminology").TerminologyProject>): Promise<void>;
+            deleteTerminologyProject(id: number): Promise<void>;
+            getTerminologyProject(id: number): Promise<import("./types/terminology").TerminologyProject & { document_count: number }>;
+            getAllTerminologyProjects(): Promise<(import("./types/terminology").TerminologyProject & { document_count: number })[]>;
+            addProjectDocument(projectId: number, documentId: number): Promise<void>;
+            removeProjectDocument(projectId: number, documentId: number): Promise<void>;
+            setProjectDocuments(projectId: number, documentIds: number[]): Promise<void>;
+            getProjectDocuments(projectId: number): Promise<import("./types/terminology").ProjectDocumentInfo[]>;
+            getExtractionsByProject(projectId: number): Promise<import("./types/terminology").TerminologyExtraction[]>;
+            getProjectTerms(projectId: number): Promise<import("./types/terminology").TerminologyTerm[]>;
+
+            // ==================== Terminology Verification ====================
+            verifyTerm(id: number, status: 'verified' | 'rejected', verifiedBy: string, notes?: string): Promise<void>;
+            batchVerifyTerms(ids: number[], status: 'verified' | 'rejected', verifiedBy: string): Promise<void>;
+
+            // ==================== Terminology Export ====================
+            exportTerminologyProjectExcel(projectId: number): Promise<{ success: boolean; filePath?: string; canceled?: boolean; error?: string }>;
 
             // ==================== Database Export/Import ====================
             exportDatabase(): Promise<{ success: boolean; filePath?: string; sizeMB?: string; canceled?: boolean; error?: string }>;
