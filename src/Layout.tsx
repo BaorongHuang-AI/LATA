@@ -23,6 +23,9 @@ import CorpusSearchPage from "./corpus/CorpusSearchPage";
 import TerminologyProjectsPage from "./terminology/TerminologyProjectsPage";
 import TerminologyProjectDetail from "./terminology/TerminologyProjectDetail";
 import TrashboxPage from "./trash/TrashboxPage";
+import AnalyticsDashboard from "./analytics/AnalyticsDashboard";
+import AnalyticsExperimentPage from "./analytics/AnalyticsExperimentPage";
+import SemanticNetworkPage from "./semantic/SemanticNetworkPage";
 import DatabaseManagerPage from "./database/DatabaseManagerPage";
 // import ParaAlignmentPage from "./onlinealign/ParaAlignmentPage";
 
@@ -71,6 +74,9 @@ const Layout = () => {
                     <Route path="/corpussearch" element={<CorpusSearchPage />} />
                     <Route path="/terminology" element={<TerminologyProjectsPage />} />
                     <Route path="/terminology/:projectId" element={<TerminologyProjectDetail />} />
+                    <Route path="/analytics" element={<AnalyticsDashboard />} />
+                    <Route path="/analytics/:experimentId" element={<AnalyticsExperimentPage />} />
+                    <Route path="/semantic" element={<SemanticNetworkPage />} />
                     <Route path="/trash" element={<TrashboxPage />} />
                     <Route path="/database" element={<DatabaseManagerPage />} />
                 </Routes>

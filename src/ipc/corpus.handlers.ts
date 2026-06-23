@@ -74,7 +74,7 @@ ipcMain.handle("corpus:runAnalysis", async (_, payload: {
   const response = await sendChatCompletion({
     messages,
     temperature: 0.3,
-    maxTokens: 4096,
+    maxTokens: 16384,
   });
 
   const docIdsJson = JSON.stringify(documentIds);

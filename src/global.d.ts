@@ -518,6 +518,26 @@ declare global {
             // ==================== Terminology Export ====================
             exportTerminologyProjectExcel(projectId: number): Promise<{ success: boolean; filePath?: string; canceled?: boolean; error?: string }>;
 
+            // ==================== Semantic Network ====================
+            getSemanticExtractions(): Promise<import("./types/semanticNetwork").SemanticNetworkExtraction[]>;
+            getSemanticExtraction(id: number): Promise<import("./types/semanticNetwork").SemanticNetworkExtraction | undefined>;
+            deleteSemanticExtraction(id: number): Promise<void>;
+            runSemanticExtraction(payload: { documentIds: number[] }): Promise<{
+                id: number; network_data: import("./types/semanticNetwork").SemanticNetworkData;
+                model_name: string; segment_count: number; truncated: boolean;
+            }>;
+
+            // ==================== Analytics ====================
+            createAnalyticsExperiment(data: { title: string; research_question?: string; hypothesis?: string; configuration: string }): Promise<number>;
+            updateAnalyticsExperiment(id: number, data: { title?: string; status?: 'draft' | 'running' | 'completed' | 'error'; configuration?: string }): Promise<void>;
+            deleteAnalyticsExperiment(id: number): Promise<void>;
+            getAnalyticsExperiment(id: number): Promise<import("./types/analytics").AnalyticsExperiment | undefined>;
+            getAllAnalyticsExperiments(): Promise<import("./types/analytics").AnalyticsExperiment[]>;
+            runAnalyticsExperiment(experimentId: number): Promise<import("./types/analytics").ExperimentResult>;
+            getAnalyticsResults(experimentId: number): Promise<import("./types/analytics").AnalyticsResult[]>;
+            saveAnalyticsReport(experimentId: number, format: string, content: string): Promise<number>;
+            getAnalyticsReport(experimentId: number): Promise<import("./types/analytics").AnalyticsReport | undefined>;
+
             // ==================== Database Export/Import ====================
             exportDatabase(): Promise<{ success: boolean; filePath?: string; sizeMB?: string; canceled?: boolean; error?: string }>;
             importDatabase(): Promise<{ success: boolean; backupPath?: string; canceled?: boolean; error?: string }>;

@@ -30,6 +30,8 @@ const MENU_SECTIONS: MenuSection[] = [
     items: [
       { name: "Corpus Search", path: "/corpussearch", icon: "🔍" },
       { name: "Corpus Analysis", path: "/corpusanalysis", icon: "📊" },
+      { name: "Analytics", path: "/analytics", icon: "📈" },
+      { name: "Semantic Net", path: "/semantic", icon: "🕸️" },
     ],
   },
   {

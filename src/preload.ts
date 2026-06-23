@@ -550,6 +550,32 @@ contextBridge.exposeInMainWorld('api', {
     exportTerminologyProjectExcel: (projectId: number) =>
         ipcRenderer.invoke("terminology:exportProjectExcel", projectId),
 
+    // ================= SEMANTIC NETWORK =================
+    getSemanticExtractions: () => ipcRenderer.invoke("semantic:getExtractions"),
+    getSemanticExtraction: (id: number) => ipcRenderer.invoke("semantic:getExtraction", id),
+    deleteSemanticExtraction: (id: number) => ipcRenderer.invoke("semantic:deleteExtraction", id),
+    runSemanticExtraction: (payload: { documentIds: number[] }) => ipcRenderer.invoke("semantic:runExtraction", payload),
+
+    // ================= ANALYTICS =================
+    createAnalyticsExperiment: (data: { title: string; research_question?: string; hypothesis?: string; configuration: string }) =>
+        ipcRenderer.invoke("analytics:createExperiment", data),
+    updateAnalyticsExperiment: (id: number, data: { title?: string; status?: 'draft' | 'running' | 'completed' | 'error'; configuration?: string }) =>
+        ipcRenderer.invoke("analytics:updateExperiment", id, data),
+    deleteAnalyticsExperiment: (id: number) =>
+        ipcRenderer.invoke("analytics:deleteExperiment", id),
+    getAnalyticsExperiment: (id: number) =>
+        ipcRenderer.invoke("analytics:getExperiment", id),
+    getAllAnalyticsExperiments: () =>
+        ipcRenderer.invoke("analytics:getAllExperiments"),
+    runAnalyticsExperiment: (experimentId: number) =>
+        ipcRenderer.invoke("analytics:runExperiment", experimentId),
+    getAnalyticsResults: (experimentId: number) =>
+        ipcRenderer.invoke("analytics:getResults", experimentId),
+    saveAnalyticsReport: (experimentId: number, format: string, content: string) =>
+        ipcRenderer.invoke("analytics:saveReport", experimentId, format, content),
+    getAnalyticsReport: (experimentId: number) =>
+        ipcRenderer.invoke("analytics:getReport", experimentId),
+
     // ================= FINISHED =================
     onAlignmentFinished: (callback: (data: any) => void) => {
         if (finishedListener) {

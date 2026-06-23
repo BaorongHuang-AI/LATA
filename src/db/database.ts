@@ -1,5 +1,5 @@
 import {db} from "./db";
-import {initProjectSchema, initTerminologySchema, initTerminologyProjectSchema} from "./projectSchema";
+import {initProjectSchema, initTerminologySchema, initTerminologyProjectSchema, initAnalyticsSchema, initSemanticNetworkSchema} from "./projectSchema";
 //
 // const Database = require('better-sqlite3');
 // const path = require('path');
@@ -1813,6 +1813,68 @@ VALUES
   NULL, 0.3, 4096
 ),
 (
+  'corpus_analysis',
+  'Cultural Adaptation Analysis',
+  'You are a cross-cultural translation analyst. Analyze the provided parallel segments for cultural adaptation phenomena. For each segment pair, identify:
+
+1. **Cultural references** in the source text (idioms, customs, religious elements, food, clothing, social norms, historical references, proper names with cultural significance)
+2. **Adaptation strategy** used in the target:
+   - PRESERVED: cultural reference kept as-is (e.g. borrowed word, transliteration)
+   - SUBSTITUTED: replaced with a target-culture equivalent
+   - EXPLAINED: kept but with added explanation or gloss
+   - OMITTED: cultural reference removed entirely
+   - GENERALIZED: specific cultural term replaced with a general concept
+3. **Cultural additions** in the target that were not in the source (e.g. added honorifics, politeness markers, religious expressions)
+4. **Politeness/register shift**: rate whether the target is MORE formal (+1), SAME (0), or LESS formal (-1) than the source
+5. **Ideological shifts**: any changes that reflect different ideological or religious perspectives
+6. **Overall cultural distance score** (1-5): 1=minimal cultural gap, 5=profound cultural transformation
+
+Return ONLY valid JSON in this format:
+{
+  "segments": [
+    {
+      "segment_number": 1,
+      "cultural_references_source": ["reference1", "reference2"],
+      "adaptations": [
+        {"reference": "ref", "strategy": "SUBSTITUTED", "target_form": "target form", "explanation": "why"}
+      ],
+      "cultural_additions_target": [],
+      "politeness_shift": 0,
+      "ideological_shifts": [],
+      "cultural_distance_score": 2
+    }
+  ],
+  "summary": {
+    "total_segments": N,
+    "total_references": N,
+    "preservation_ratio": 0.X,
+    "substitution_ratio": 0.X,
+    "explicitation_ratio": 0.X,
+    "omission_ratio": 0.X,
+    "generalization_ratio": 0.X,
+    "cultural_addition_count": N,
+    "avg_politeness_shift": 0.X,
+    "avg_cultural_distance": 0.X,
+    "dominant_strategy": "SUBSTITUTED",
+    "key_findings": "Brief analysis..."
+  }
+}',
+  'Analyze the following aligned parallel corpus segments for cultural adaptation phenomena. Identify cultural references, classify adaptation strategies, detect cultural additions, assess politeness shifts, and compute a cultural distance score for each segment.
+
+Aligned Segments:
+{{segments}}
+
+Return a JSON object with "segments" array and "summary" object as specified in the system prompt.',
+  NULL, 0.3, 4096
+),
+(
+  'corpus_analysis',
+  'Cross-Lingual Concept Mapping',
+  'You are a cross-lingual semantic network analyst. Analyze the provided aligned parallel segments and extract a concept mapping network between source and target languages. For each segment, identify key semantic concepts that carry conceptual content. Build a mapping between source-language concepts and their target-language realizations. Group inflectional variants under a canonical form. Assign semantic fields: legal, medical, emotional, spatial, temporal, social, cognitive, technical, cultural, religious, commercial, general. Track mapping types (1:1, 1:N, N:1, N:M). Include example sentence pairs. Return ONLY valid JSON with "concepts" array and "summary" object.',
+  'Analyze the aligned parallel corpus and extract a cross-lingual concept mapping network.\n\nAligned Segments:\n{{segments}}\n\nReturn JSON with "concepts" array and "summary" object.',
+  NULL, 0.3, 4096
+),
+(
   'terminology_extraction',
   'Bilingual Terminology Extraction',
   'You are a professional bilingual terminology extraction engine. Your task is to analyze aligned parallel text segments and extract significant bilingual term pairs.
@@ -1876,5 +1938,11 @@ initTerminologySchema();
 
 // Initialize terminology project schema
 initTerminologyProjectSchema();
+
+// Initialize analytics schema
+initAnalyticsSchema();
+
+// Initialize semantic network schema
+initSemanticNetworkSchema();
 
 // module.exports = db;

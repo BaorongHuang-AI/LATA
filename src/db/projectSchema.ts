@@ -284,4 +284,73 @@ export const initTerminologyProjectSchema = () => {
     }
 };
 
+// ==================== Semantic Network Schema ====================
+export const initSemanticNetworkSchema = () => {
+    const hasNet = db.pragma("table_info(semantic_networks)");
+    if (!hasNet || hasNet.length === 0) {
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS semantic_networks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                document_ids TEXT NOT NULL,
+                model_name TEXT,
+                token_usage TEXT,
+                network_data TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+    }
+};
+
+// ==================== Analytics Schema ====================
+export const initAnalyticsSchema = () => {
+    const hasExperiments = db.pragma("table_info(analytics_experiments)");
+    if (!hasExperiments || hasExperiments.length === 0) {
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS analytics_experiments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                research_question TEXT,
+                hypothesis TEXT,
+                configuration TEXT NOT NULL,
+                status TEXT DEFAULT 'draft',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+    }
+
+    const hasResults = db.pragma("table_info(analytics_results)");
+    if (!hasResults || hasResults.length === 0) {
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS analytics_results (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                experiment_id INTEGER NOT NULL,
+                document_id INTEGER,
+                group_name TEXT NOT NULL,
+                document_title TEXT,
+                source_language TEXT,
+                target_language TEXT,
+                metrics TEXT NOT NULL,
+                FOREIGN KEY (experiment_id) REFERENCES analytics_experiments(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_analytics_results_exp
+                ON analytics_results(experiment_id);
+        `);
+    }
+
+    const hasReports = db.pragma("table_info(analytics_reports)");
+    if (!hasReports || hasReports.length === 0) {
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS analytics_reports (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                experiment_id INTEGER NOT NULL,
+                format TEXT DEFAULT 'markdown',
+                content TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (experiment_id) REFERENCES analytics_experiments(id) ON DELETE CASCADE
+            );
+        `);
+    }
+};
+
 export default initProjectSchema;
