@@ -26,6 +26,8 @@ import TrashboxPage from "./trash/TrashboxPage";
 import AnalyticsDashboard from "./analytics/AnalyticsDashboard";
 import AnalyticsExperimentPage from "./analytics/AnalyticsExperimentPage";
 import SemanticNetworkPage from "./semantic/SemanticNetworkPage";
+import StylometricProfilerPage from "./stylometry/StylometricProfilerPage";
+import NarrativeAnalysisPage from "./narrative/NarrativeAnalysisPage";
 import DatabaseManagerPage from "./database/DatabaseManagerPage";
 // import ParaAlignmentPage from "./onlinealign/ParaAlignmentPage";
 
@@ -77,6 +79,8 @@ const Layout = () => {
                     <Route path="/analytics" element={<AnalyticsDashboard />} />
                     <Route path="/analytics/:experimentId" element={<AnalyticsExperimentPage />} />
                     <Route path="/semantic" element={<SemanticNetworkPage />} />
+                    <Route path="/stylometry" element={<StylometricProfilerPage />} />
+                    <Route path="/narrative" element={<NarrativeAnalysisPage />} />
                     <Route path="/trash" element={<TrashboxPage />} />
                     <Route path="/database" element={<DatabaseManagerPage />} />
                 </Routes>

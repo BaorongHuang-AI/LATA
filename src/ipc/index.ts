@@ -1,3 +1,4 @@
+import "./shell";
 import "./auth";
 import "./llm"
 import "./database.handlers"
@@ -13,3 +14,6 @@ import "./corpus.handlers"
 import "./terminology.handlers"
 import "./analytics.handlers"
 import "./semanticNetwork.handlers"
+import "./stylometry.handlers"
+import "./narrative.handlers"
+import "./local-llm.handlers"

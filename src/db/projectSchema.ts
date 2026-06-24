@@ -284,6 +284,25 @@ export const initTerminologyProjectSchema = () => {
     }
 };
 
+// ==================== Narrative Analysis Schema ====================
+export const initNarrativeSchema = () => {
+    const has = db.pragma("table_info(narrative_analyses)");
+    if (!has || has.length === 0) {
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS narrative_analyses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                document_id INTEGER NOT NULL,
+                document_title TEXT,
+                model_name TEXT,
+                source_language TEXT,
+                target_language TEXT,
+                data TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+    }
+};
+
 // ==================== Semantic Network Schema ====================
 export const initSemanticNetworkSchema = () => {
     const hasNet = db.pragma("table_info(semantic_networks)");
@@ -295,6 +314,25 @@ export const initSemanticNetworkSchema = () => {
                 model_name TEXT,
                 token_usage TEXT,
                 network_data TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+    }
+};
+
+// ==================== Stylometric Profiles Schema ====================
+export const initStylometrySchema = () => {
+    const has = db.pragma("table_info(stylometric_profiles)");
+    if (!has || has.length === 0) {
+        db.exec(`
+            CREATE TABLE IF NOT EXISTS stylometric_profiles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                document_id INTEGER NOT NULL,
+                document_title TEXT,
+                source_language TEXT,
+                target_language TEXT,
+                metadata TEXT NOT NULL,
+                features TEXT NOT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
         `);

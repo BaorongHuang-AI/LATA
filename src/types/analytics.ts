@@ -74,6 +74,44 @@ export interface AnalyticsMetrics {
   sentence_length_ratio: number;  // avg_sent_len_target / avg_sent_len_source
   word_length_ratio: number;
 
+  // --- Distribution shape ---
+  sentence_length_skewness?: number;
+  sentence_length_kurtosis?: number;
+  word_length_skewness?: number;
+
+  // --- N-gram diversity ---
+  bigram_ttr?: number;              // unique bigrams / total bigrams
+  trigram_ttr?: number;
+
+  // --- Stylistic markers ---
+  adverb_density?: number;
+  conjunction_density?: number;
+  definite_article_ratio?: number;  // definite / (definite + indefinite)
+  contraction_ratio?: number;
+  quote_density?: number;           // quoted speech density
+  question_density?: number;
+  exclamation_density?: number;
+  number_density?: number;          // numeric token ratio
+  transition_density?: number;      // "however","therefore",etc.
+  abbreviation_density?: number;
+  unique_starters_ratio?: number;   // unique sentence-starting words / sentences
+  repetition_index?: number;        // avg distance between repeated content words
+
+  // --- Target-side distribution ---
+  target_sentence_length_skewness?: number;
+  target_bigram_ttr?: number;
+  target_adverb_density?: number;
+  target_conjunction_density?: number;
+  target_quote_density?: number;
+  target_number_density?: number;
+
+  // --- Deltas (target - source) ---
+  delta_adverb_density?: number;
+  delta_conjunction_density?: number;
+  delta_quote_density?: number;
+  delta_bigram_ttr?: number;
+  delta_sentence_length_skewness?: number;
+
   // --- Readability (language-specific, best-effort) ---
   flesch_reading_ease?: number;
   automated_readability_index?: number;

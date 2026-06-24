@@ -32,6 +32,8 @@ const MENU_SECTIONS: MenuSection[] = [
       { name: "Corpus Analysis", path: "/corpusanalysis", icon: "📊" },
       { name: "Analytics", path: "/analytics", icon: "📈" },
       { name: "Semantic Net", path: "/semantic", icon: "🕸️" },
+      { name: "Stylometry", path: "/stylometry", icon: "🖊️" },
+      { name: "Narrative", path: "/narrative", icon: "📖" },
     ],
   },
   {

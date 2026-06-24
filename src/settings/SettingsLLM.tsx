@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { message, Tabs } from "antd";
 import { LLMRow } from "../types/llminterfaces";
 import { MultimodalLLMRow } from "../types/multimodal";
-import { Save, Zap, PlusCircle, Settings2, Eye, EyeOff, Loader2, Star } from "lucide-react";
+import { Save, Zap, PlusCircle, Settings2, Eye, EyeOff, Loader2, Star, Monitor, Cpu, Wrench } from "lucide-react";
+import LocalLLMTab from "./LocalLLMTab";
 
 const inputClass =
     "w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition";
@@ -491,6 +492,67 @@ const LLMSettingsPage = () => {
                         onTest={testTextModel}
                         onSetDefault={setTextDefault}
                     />
+                    {/* Quick local server presets */}
+                    <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50">
+                        <div className="flex items-center gap-2 mb-3">
+                            <Monitor className="w-4 h-4 text-gray-500" />
+                            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                Quick Presets — Local Servers
+                            </h4>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            <button
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 hover:border-green-300 hover:bg-green-50 rounded-lg text-xs text-gray-600 transition-colors"
+                                onClick={() => {
+                                    setTextNewModel({
+                                        model_name: "llama3.1:8b",
+                                        base_url: "http://localhost:11434/v1",
+                                        api_key: "ollama",
+                                    });
+                                    message.info(
+                                        'Ollama preset filled. Adjust the model name to match the model you pulled (e.g. "qwen2.5:14b", "mistral:7b").',
+                                        5,
+                                    );
+                                }}
+                            >
+                                <Cpu className="w-3 h-3 text-green-500" />
+                                Ollama
+                            </button>
+                            <button
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 hover:border-blue-300 hover:bg-blue-50 rounded-lg text-xs text-gray-600 transition-colors"
+                                onClick={() =>
+                                    setTextNewModel({
+                                        model_name: "local-model",
+                                        base_url: "http://localhost:1234/v1",
+                                        api_key: "lm-studio",
+                                    })
+                                }
+                            >
+                                <Monitor className="w-3 h-3 text-blue-500" />
+                                LM Studio
+                            </button>
+                            <button
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 hover:border-amber-300 hover:bg-amber-50 rounded-lg text-xs text-gray-600 transition-colors"
+                                onClick={() =>
+                                    setTextNewModel({
+                                        model_name: "local-model",
+                                        base_url: "http://localhost:8080/v1",
+                                        api_key: "llama-cpp",
+                                    })
+                                }
+                            >
+                                <Wrench className="w-3 h-3 text-amber-500" />
+                                llama.cpp
+                            </button>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-2">
+                            These presets fill the form below. Edit the model name to match
+                            what you pulled. Visit the{" "}
+                            <strong className="text-gray-500">Local LLM</strong> tab for
+                            guided Ollama setup.
+                        </p>
+                    </div>
+
                     <AddModelSection
                         onAdd={addTextModel}
                         adding={textAdding}
@@ -540,6 +602,23 @@ const LLMSettingsPage = () => {
                             setMmNewModel((prev) => ({ ...prev, [field]: value }))
                         }
                     />
+                </div>
+            ),
+        },
+        {
+            key: "local",
+            label: "Local LLM",
+            children: (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="px-6 py-4 border-b border-gray-100">
+                        <h2 className="font-semibold text-gray-700">Local LLM Setup</h2>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                            Detect, install, and manage local LLMs via Ollama
+                        </p>
+                    </div>
+                    <div className="p-6">
+                        <LocalLLMTab />
+                    </div>
                 </div>
             ),
         },

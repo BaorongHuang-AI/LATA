@@ -1,5 +1,5 @@
 import {db} from "./db";
-import {initProjectSchema, initTerminologySchema, initTerminologyProjectSchema, initAnalyticsSchema, initSemanticNetworkSchema} from "./projectSchema";
+import {initProjectSchema, initTerminologySchema, initTerminologyProjectSchema, initAnalyticsSchema, initSemanticNetworkSchema, initStylometrySchema, initNarrativeSchema} from "./projectSchema";
 //
 // const Database = require('better-sqlite3');
 // const path = require('path');
@@ -1875,6 +1875,13 @@ Return a JSON object with "segments" array and "summary" object as specified in 
   NULL, 0.3, 4096
 ),
 (
+  'corpus_analysis',
+  'Literary Narrative Analysis',
+  'You are a literary scholar specializing in narratology and comparative translation studies. Analyze the provided aligned parallel text (source novel and its translation) for narrative structure. Divide the text into 10 equal narrative segments. For each segment, identify: (1) emotional sentiment score (-1 negative to +1 positive), (2) dominant narrative mode (dialogue/description/action/reflection/exposition), (3) key characters present and their interactions. Extract the full character list with roles (protagonist/antagonist/supporting/minor) and mention counts. Map character interactions with relationship types (allies/adversaries/family/romantic/neutral) and interaction frequency. Identify the narrative voice (first_person/third_person_limited/third_person_omniscient) and measure narrator intrusion density and free indirect discourse density. Detect temporal structure: is the narrative linear? Count flashbacks. Estimate the time compression ratio. Compute summary statistics: dialogue ratios, emotional range, emotional correlation between source and target, narrative pace. Return ONLY valid JSON following the specified schema.',
+  'Analyze this parallel literary text (source and translation) and extract its narrative structure. Divide into 10 equal segments.\n\nAligned Text:\n{{segments}}\n\nReturn JSON with: emotional_arc (array of {segment, label, source_sentiment, target_sentiment}), characters (array of {name, role, mentions_source, mentions_target}), character_interactions (array of {source, target, weight, relationship}), structure (array of {segment, mode, source_density, target_density}), voice ({point_of_view, narrator_intrusion_source, narrator_intrusion_target, free_indirect_discourse_source, free_indirect_discourse_target}), temporal ({is_linear, flashback_count_source, flashback_count_target, time_compression_ratio}), summary ({total_segments, character_count, dialogue_ratio_source, dialogue_ratio_target, emotional_range_source, emotional_range_target, emotional_correlation, narrative_pace_source, narrative_pace_target}).',
+  NULL, 0.3, 4096
+),
+(
   'terminology_extraction',
   'Bilingual Terminology Extraction',
   'You are a professional bilingual terminology extraction engine. Your task is to analyze aligned parallel text segments and extract significant bilingual term pairs.
@@ -1944,5 +1951,11 @@ initAnalyticsSchema();
 
 // Initialize semantic network schema
 initSemanticNetworkSchema();
+
+// Initialize stylometry schema
+initStylometrySchema();
+
+// Initialize narrative analysis schema
+initNarrativeSchema();
 
 // module.exports = db;

@@ -305,6 +305,30 @@ contextBridge.exposeInMainWorld('api', {
     encryptApiKey: (apiKey: string) =>
         ipcRenderer.invoke("llm:encrypt-key", apiKey),
 
+    /* =====================
+       LOCAL LLM (Ollama)
+    ====================== */
+    detectOllama: () =>
+        ipcRenderer.invoke("local-llm:detect"),
+
+    listInstalledModels: () =>
+        ipcRenderer.invoke("local-llm:list-models"),
+
+    pullModel: (modelName: string) =>
+        ipcRenderer.invoke("local-llm:pull-model", modelName),
+
+    cancelPull: () =>
+        ipcRenderer.invoke("local-llm:cancel-pull"),
+
+    autoConfigureModel: (payload: { model_name: string; base_url: string; api_key: string }) =>
+        ipcRenderer.invoke("local-llm:auto-configure", payload),
+
+    onPullProgress: (callback: (data: any) => void) =>
+        ipcRenderer.on("local-llm:pull-progress", (_event: any, data: any) => callback(data)),
+
+    removePullProgressListener: () =>
+        ipcRenderer.removeAllListeners("local-llm:pull-progress"),
+
     /**
      * align stats
      */
@@ -555,6 +579,19 @@ contextBridge.exposeInMainWorld('api', {
     getSemanticExtraction: (id: number) => ipcRenderer.invoke("semantic:getExtraction", id),
     deleteSemanticExtraction: (id: number) => ipcRenderer.invoke("semantic:deleteExtraction", id),
     runSemanticExtraction: (payload: { documentIds: number[] }) => ipcRenderer.invoke("semantic:runExtraction", payload),
+
+    // ================= STYLOMETRY =================
+    getStylometricProfiles: () => ipcRenderer.invoke("stylometry:getProfiles"),
+    deleteStylometricProfile: (id: number) => ipcRenderer.invoke("stylometry:deleteProfile", id),
+    deleteAllStylometricProfiles: () => ipcRenderer.invoke("stylometry:deleteAllProfiles"),
+    extractStylometricProfiles: (payload: { documentIds: number[]; metadataList: import("./types/stylometry").StylometricMetadata[] }) =>
+        ipcRenderer.invoke("stylometry:extractProfiles", payload),
+
+    // ================= NARRATIVE =================
+    getNarrativeAnalyses: () => ipcRenderer.invoke("narrative:getAll"),
+    getNarrativeAnalysis: (id: number) => ipcRenderer.invoke("narrative:get", id),
+    deleteNarrativeAnalysis: (id: number) => ipcRenderer.invoke("narrative:delete", id),
+    analyzeNarrative: (payload: { documentId: number }) => ipcRenderer.invoke("narrative:analyze", payload),
 
     // ================= ANALYTICS =================
     createAnalyticsExperiment: (data: { title: string; research_question?: string; hypothesis?: string; configuration: string }) =>

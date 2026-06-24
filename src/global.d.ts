@@ -6,6 +6,32 @@ import {PromptEntity} from "./types/prompt";
 import {Tag, TagInput} from "./types/tag";
 
 export {};
+
+declare global {
+    interface OllamaModel {
+        name: string;
+        model: string;
+        modified_at: string;
+        size: number;
+        digest: string;
+        details?: {
+            parent_model?: string;
+            format?: string;
+            family?: string;
+            parameter_size?: string;
+            quantization_level?: string;
+        };
+    }
+
+    interface PullProgress {
+        status: string;
+        digest?: string;
+        total?: number;
+        completed?: number;
+        error?: string;
+    }
+}
+
 interface Highlight {
     id: string;
     start_index: number;
@@ -351,6 +377,8 @@ declare global {
 
             getAppVersion(): Promise<string>;
 
+            openExternal(url: string): void;
+
             saveLLMModel(payload: {
                 id: string;
                 model_name: string;
@@ -373,6 +401,15 @@ declare global {
             }): Promise<void>;
 
             encryptApiKey(apiKey: string): Promise<string>;
+
+            // ==================== Local LLM (Ollama) ====================
+            detectOllama(): Promise<{ status: string; models?: OllamaModel[]; error?: string }>;
+            listInstalledModels(): Promise<{ models: OllamaModel[] }>;
+            pullModel(modelName: string): Promise<{ success: boolean }>;
+            cancelPull(): Promise<{ cancelled: boolean }>;
+            autoConfigureModel(payload: { model_name: string; base_url: string; api_key: string }): Promise<{ id: number; created: boolean }>;
+            onPullProgress(callback: (data: PullProgress) => void): void;
+            removePullProgressListener(): void;
 
             /**
              * stats
@@ -517,6 +554,32 @@ declare global {
 
             // ==================== Terminology Export ====================
             exportTerminologyProjectExcel(projectId: number): Promise<{ success: boolean; filePath?: string; canceled?: boolean; error?: string }>;
+
+            // ==================== Narrative ====================
+            getNarrativeAnalyses(): Promise<import("./types/narrative").NarrativeAnalysis[]>;
+            getNarrativeAnalysis(id: number): Promise<import("./types/narrative").NarrativeAnalysis | undefined>;
+            deleteNarrativeAnalysis(id: number): Promise<void>;
+            analyzeNarrative(payload: { documentId: number }): Promise<{
+                id: number; data: import("./types/narrative").NarrativeData;
+                model_name: string; segment_count: number; truncated: boolean;
+            }>;
+
+            // ==================== Stylometry ====================
+            getStylometricProfiles(): Promise<import("./types/stylometry").StylometricProfile[]>;
+            deleteStylometricProfile(id: number): Promise<void>;
+            deleteAllStylometricProfiles(): Promise<void>;
+            extractStylometricProfiles(payload: { documentIds: number[]; metadataList: import("./types/stylometry").StylometricMetadata[]; useDeltas?: boolean }): Promise<{
+                profiles: import("./types/stylometry").StylometricProfile[];
+                pca: import("./types/stylometry").PCAResult | null;
+                clusters: import("./types/stylometry").ClusterResult | null;
+                discrimination: Array<{ name: string; score: number }>;
+                domainComparison: import("./types/stylometry").DomainComparison[];
+                featureNames: string[];
+                useDeltas: boolean;
+            }>;
+
+            /** Compare domains on a given metric */
+            compareDomains(profileIds: number[], metric: string): Promise<import("./types/stylometry").DomainComparison[]>;
 
             // ==================== Semantic Network ====================
             getSemanticExtractions(): Promise<import("./types/semanticNetwork").SemanticNetworkExtraction[]>;
